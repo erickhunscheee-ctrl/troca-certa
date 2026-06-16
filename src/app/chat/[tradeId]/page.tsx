@@ -17,6 +17,7 @@ export default function ChatPage({ params }: { params: Promise<{ tradeId: string
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const activeChannelRef = useRef<any>(null);
 
   const router = useRouter();
 
@@ -59,26 +60,26 @@ export default function ChatPage({ params }: { params: Promise<{ tradeId: string
       const isSender = tradeData.sender_id === session.user.id;
       setPartner(isSender ? tradeData.receiver : tradeData.sender);
 
-      // Load or create chat
-      let { data: chatData, error: chatError } = await supabase
+      // Load or create chat (using safe array queries instead of .single() to avoid PGRST116 errors)
+      let { data: chatsList, error: chatError } = await supabase
         .from("chats")
         .select("*")
-        .eq("trade_request_id", tradeId)
-        .single();
+        .eq("trade_request_id", tradeId);
 
-      if (chatError && chatError.code === "PGRST116") {
+      let chatData = chatsList && chatsList.length > 0 ? chatsList[0] : null;
+
+      if (!chatData) {
         // Chat not found, let's insert it
         const { data: newChat, error: createError } = await supabase
           .from("chats")
           .insert({ trade_request_id: tradeId })
-          .select()
-          .single();
+          .select();
 
         if (createError) {
           console.error("Error creating chat row", createError);
           return;
         }
-        chatData = newChat;
+        chatData = newChat && newChat.length > 0 ? newChat[0] : null;
       }
 
       setChat(chatData);
@@ -92,6 +93,11 @@ export default function ChatPage({ params }: { params: Promise<{ tradeId: string
           .order("created_at", { ascending: true });
 
         setMessages(messagesData || []);
+
+        // Clean up existing channel if active before subscribing
+        if (activeChannelRef.current) {
+          supabase.removeChannel(activeChannelRef.current);
+        }
 
         // Subscribe to messages in real-time
         const channel = supabase
@@ -114,15 +120,20 @@ export default function ChatPage({ params }: { params: Promise<{ tradeId: string
           )
           .subscribe();
 
+        activeChannelRef.current = channel;
         setLoading(false);
-
-        return () => {
-          supabase.removeChannel(channel);
-        };
       }
     }
 
     loadChatDetails();
+
+    return () => {
+      if (activeChannelRef.current) {
+        const channelToClean = activeChannelRef.current;
+        supabase.removeChannel(channelToClean);
+        activeChannelRef.current = null;
+      }
+    };
   }, [tradeId, router]);
 
   // Scroll to bottom whenever messages change

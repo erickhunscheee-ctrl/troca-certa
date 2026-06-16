@@ -1,6 +1,4 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -10,26 +8,154 @@ import { Coins, LogOut, User as UserIcon, MessageSquare, ClipboardList, LayoutDa
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pendingTradesCount, setPendingTradesCount] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(false);
+  
+  const tradesChannelRef = useRef<any>(null);
+  const messagesChannelRef = useRef<any>(null);
+  const userRef = useRef<User | null>(null);
+
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      userRef.current = currentUser;
       setLoading(false);
+      if (currentUser) {
+        setupNotifications(currentUser);
+      }
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      userRef.current = currentUser;
       setLoading(false);
+      if (currentUser) {
+        setupNotifications(currentUser);
+      } else {
+        cleanupNotifications();
+      }
     });
+
+    async function setupNotifications(currentUser: User) {
+      // 1. Pending Trade Requests Count
+      const fetchPendingCount = async () => {
+        const { count, error } = await supabase
+          .from("trade_requests")
+          .select("*", { count: "exact", head: true })
+          .eq("receiver_id", currentUser.id)
+          .eq("status", "pending");
+        if (!error && count !== null) {
+          setPendingTradesCount(count);
+        }
+      };
+
+      await fetchPendingCount();
+
+      // Subscribe to trade_requests updates
+      if (tradesChannelRef.current) {
+        supabase.removeChannel(tradesChannelRef.current);
+      }
+      tradesChannelRef.current = supabase
+        .channel(`user-trades-${currentUser.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "trade_requests",
+          },
+          () => {
+            fetchPendingCount();
+          }
+        )
+        .subscribe();
+
+      // 2. Real-time message checking
+      // Subscribe to messages in chats the user belongs to
+      // First, get all chats where user is sender or receiver of the trade_request
+      const fetchChatsAndSubscribe = async () => {
+        const { data: trades, error } = await supabase
+          .from("trade_requests")
+          .select("id")
+          .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`);
+
+        if (error || !trades || trades.length === 0) return;
+
+        const tradeIds = trades.map((t) => t.id);
+
+        const { data: chats } = await supabase
+          .from("chats")
+          .select("id")
+          .in("trade_request_id", tradeIds);
+
+        if (!chats || chats.length === 0) return;
+
+        const chatIds = chats.map((c) => c.id);
+
+        if (messagesChannelRef.current) {
+          supabase.removeChannel(messagesChannelRef.current);
+        }
+
+        messagesChannelRef.current = supabase
+          .channel(`user-messages-${currentUser.id}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "messages",
+            },
+            (payload) => {
+              const newMsg = payload.new;
+              // Check if message belongs to one of user's active chats
+              // and was not sent by the user themselves
+              if (
+                chatIds.includes(newMsg.chat_id) &&
+                newMsg.sender_id !== currentUser.id &&
+                !window.location.pathname.includes(`/chat/`)
+              ) {
+                setUnreadMessages(true);
+              }
+            }
+          )
+          .subscribe();
+      };
+
+      await fetchChatsAndSubscribe();
+    }
+
+    function cleanupNotifications() {
+      if (tradesChannelRef.current) {
+        supabase.removeChannel(tradesChannelRef.current);
+        tradesChannelRef.current = null;
+      }
+      if (messagesChannelRef.current) {
+        supabase.removeChannel(messagesChannelRef.current);
+        messagesChannelRef.current = null;
+      }
+      setPendingTradesCount(0);
+      setUnreadMessages(false);
+    }
 
     return () => {
       subscription.unsubscribe();
+      cleanupNotifications();
     };
   }, []);
+
+  // Clear unread message notification if user navigates to trades or chat
+  useEffect(() => {
+    if (pathname.includes("/trades") || pathname.includes("/chat")) {
+      setUnreadMessages(false);
+    }
+  }, [pathname]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -57,7 +183,7 @@ export default function Navbar() {
                 <Link
                   href="/dashboard"
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    pathname === "/dashboard"
+                     pathname === "/dashboard"
                       ? "bg-white/10 text-white"
                       : "text-zinc-400 hover:text-white hover:bg-white/5"
                   }`}
@@ -77,14 +203,22 @@ export default function Navbar() {
                 </Link>
                 <Link
                   href="/trades"
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive("/trades")
+                  className={`relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isActive("/trades") || isActive("/chat")
                       ? "bg-white/10 text-white"
                       : "text-zinc-400 hover:text-white hover:bg-white/5"
                   }`}
                 >
                   <ClipboardList className="h-4 w-4" />
                   Trocas
+                  {pendingTradesCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                      {pendingTradesCount}
+                    </span>
+                  )}
+                  {unreadMessages && (
+                    <span className="absolute top-1 right-2 flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                  )}
                 </Link>
               </div>
             )}
@@ -157,12 +291,20 @@ export default function Navbar() {
             </Link>
             <Link
               href="/trades"
-              className={`flex flex-col items-center gap-1 ${
-                isActive("/trades") ? "text-white" : "text-zinc-400"
+              className={`relative flex flex-col items-center gap-1 ${
+                isActive("/trades") || isActive("/chat") ? "text-white" : "text-zinc-400"
               }`}
             >
               <ClipboardList className="h-4 w-4" />
               <span>Trocas</span>
+              {pendingTradesCount > 0 && (
+                <span className="absolute -top-1 right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                  {pendingTradesCount}
+                </span>
+              )}
+              {unreadMessages && (
+                <span className="absolute top-0 right-4 flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+              )}
             </Link>
             <Link
               href="/profile"
