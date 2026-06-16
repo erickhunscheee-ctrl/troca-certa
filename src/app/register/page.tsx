@@ -55,6 +55,8 @@ export default function Register() {
     } finally {
       setLoading(false);
     }
+  };
+
   const handleGoogleLogin = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
