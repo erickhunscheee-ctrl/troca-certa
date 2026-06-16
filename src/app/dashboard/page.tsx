@@ -93,9 +93,9 @@ export default function Dashboard() {
     // 2. Get user stickers
     const { data: userStickers } = await supabase
       .from("user_stickers")
-      .select("quantity, sticker_id")
+      .select("quantity, sticker_id, stickers!inner(album_id)")
       .eq("user_id", userId)
-      .in("sticker_id", allStickers?.map(s => s.id) || []);
+      .eq("stickers.album_id", albumId);
 
     const userStickerMap = new Map<string, number>();
     userStickers?.forEach((us) => {

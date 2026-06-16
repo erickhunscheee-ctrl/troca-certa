@@ -90,10 +90,11 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
         sticker_id,
         quantity,
         user_id,
-        profiles(id, name, city, state)
+        profiles(id, name, city, state),
+        stickers!inner(album_id)
       `)
       .neq("user_id", session.user.id)
-      .in("sticker_id", allStickers.map((s) => s.id));
+      .eq("stickers.album_id", albumId);
 
     if (!otherUserStickers) {
       setLoading(false);

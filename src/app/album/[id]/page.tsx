@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
-import { ArrowLeft, Plus, Minus, Check, Copy, HelpCircle, Search, Filter } from "lucide-react";
+import { ArrowLeft, Plus, Minus, Check, Copy, HelpCircle, Search, Filter, ListPlus, Send } from "lucide-react";
 
 export default function AlbumDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id: albumId } = use(params);
@@ -19,6 +19,13 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
   // Filtros
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  // Bulk add state
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkMode, setBulkMode] = useState<"quick" | "text">("quick");
+  const [textInput, setTextInput] = useState("");
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [bulkResult, setBulkResult] = useState<string | null>(null);
 
   const router = useRouter();
 
@@ -62,9 +69,9 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
       // Load user inventory for these stickers
       const { data: userStickersData } = await supabase
         .from("user_stickers")
-        .select("*")
+        .select("*, stickers!inner(album_id)")
         .eq("user_id", session.user.id)
-        .in("sticker_id", stickersData.map(s => s.id));
+        .eq("stickers.album_id", albumId);
 
       const qtyMap: { [stickerId: string]: number } = {};
       stickersData.forEach((s) => {
@@ -124,6 +131,72 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
       console.error(err);
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleBulkTextSubmit = async () => {
+    if (!textInput.trim() || !userId) return;
+    setBulkProcessing(true);
+    setBulkResult(null);
+
+    // Parse codes (e.g. "ARG 1, BRA 5, QAT 12" or "ARG 1; BRA 5" or "ARG 1\nBRA 5")
+    const tokens = textInput
+      .split(/[,;\n]/)
+      .map(t => t.trim().toUpperCase())
+      .filter(Boolean);
+
+    if (tokens.length === 0) {
+      setBulkProcessing(false);
+      alert("Nenhuma figurinha identificada no texto.");
+      return;
+    }
+
+    // Match with the loaded stickers in the album
+    const matchedStickers = stickers.filter(s => 
+      tokens.includes(s.number.toUpperCase().trim())
+    );
+
+    if (matchedStickers.length === 0) {
+      setBulkProcessing(false);
+      alert("Nenhum código digitado corresponde a figurinhas do álbum.");
+      return;
+    }
+
+    try {
+      // Upsert them with quantity = 2 (duplicate/to trade)
+      const upserts = matchedStickers.map(s => ({
+        user_id: userId,
+        sticker_id: s.id,
+        quantity: 2,
+        updated_at: new Date().toISOString()
+      }));
+
+      const { error } = await supabase
+        .from("user_stickers")
+        .upsert(upserts, { onConflict: "user_id,sticker_id" });
+
+      if (error) throw error;
+
+      // Update local quantities
+      setQuantities(prev => {
+        const next = { ...prev };
+        matchedStickers.forEach(s => {
+          next[s.id] = 2;
+        });
+        return next;
+      });
+
+      setBulkResult(`Adicionadas ${matchedStickers.length} figurinhas como repetidas com sucesso!`);
+      setTextInput("");
+      setTimeout(() => {
+        setIsBulkModalOpen(false);
+        setBulkResult(null);
+      }, 2000);
+    } catch (err: any) {
+      console.error(err);
+      alert("Erro ao salvar figurinhas em massa: " + err.message);
+    } finally {
+      setBulkProcessing(false);
     }
   };
 
@@ -202,6 +275,13 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
               >
                 Oportunidades de Troca
               </Link>
+              <button
+                onClick={() => setIsBulkModalOpen(true)}
+                className="py-2 px-4 rounded-xl text-xs font-bold text-white bg-amber-600 hover:bg-amber-500 transition-colors cursor-pointer flex items-center gap-1"
+              >
+                <ListPlus className="h-4.5 w-4.5" />
+                Adicionar em Massa
+              </button>
             </div>
           </div>
         </div>
@@ -383,6 +463,148 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
           )}
         </div>
       </main>
+
+      {/* Bulk Add / Quick Entry Modal */}
+      {isBulkModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+          <div className="glass w-full max-w-3xl rounded-2xl border border-[var(--border-color)] p-6 overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                  <ListPlus className="h-5 w-5 text-amber-500" />
+                  Gerenciamento Rápido de Figurinhas
+                </h3>
+                <p className="text-xs text-zinc-400 mt-1">
+                  Adicione ou remova figurinhas do seu álbum rapidamente sem navegar pela grade completa.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsBulkModalOpen(false)}
+                className="text-zinc-500 hover:text-white font-bold cursor-pointer transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
+
+            {/* Modal Tabs */}
+            <div className="flex gap-2 mb-6 border-b border-white/5 pb-3">
+              <button
+                onClick={() => setBulkMode("quick")}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  bulkMode === "quick"
+                    ? "bg-amber-600 text-white"
+                    : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                Grid Rápido (Clique Único)
+              </button>
+              <button
+                onClick={() => setBulkMode("text")}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  bulkMode === "text"
+                    ? "bg-amber-600 text-white"
+                    : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                Digitar Códigos / Colagem
+              </button>
+            </div>
+
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto pr-1 pb-4">
+              {bulkMode === "quick" ? (
+                <div className="flex flex-col gap-6">
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3.5 text-xs text-amber-400">
+                    💡 <strong>Como funciona:</strong> Toque no código de uma figurinha para marcá-la como <strong>Repetida (quantidade: 2)</strong> para que ela entre automaticamente no mercado de trocas. Toque novamente para zerar.
+                  </div>
+
+                  {/* Compact Categories & Stickers grid */}
+                  <div className="flex flex-col gap-6">
+                    {allCategories.map((catName) => {
+                      const catStickers = stickers.filter(s => s.category === catName);
+                      return (
+                        <div key={catName} className="flex flex-col gap-2">
+                          <h4 className="text-xs font-extrabold uppercase tracking-wider text-zinc-400 border-b border-white/5 pb-1">
+                            {catName}
+                          </h4>
+                          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5">
+                            {catStickers.map((sticker) => {
+                              const qty = quantities[sticker.id] || 0;
+                              let btnStyle = "border-white/5 bg-black/20 text-zinc-400 hover:border-white/20";
+                              if (qty === 1) {
+                                btnStyle = "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 font-bold";
+                              } else if (qty > 1) {
+                                btnStyle = "bg-amber-500/25 border-amber-500/50 text-amber-300 font-bold";
+                              }
+
+                              return (
+                                <button
+                                  key={sticker.id}
+                                  onClick={() => {
+                                    const newQty = qty > 0 ? 0 : 2;
+                                    updateQuantity(sticker.id, newQty);
+                                  }}
+                                  disabled={updatingId === sticker.id}
+                                  className={`py-2 px-1 text-[11px] rounded border text-center transition-all cursor-pointer ${btnStyle}`}
+                                  title={`${sticker.number} - ${sticker.name}`}
+                                >
+                                  {updatingId === sticker.id ? "..." : sticker.number}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  <div className="bg-zinc-900/60 border border-white/5 rounded-xl p-4 text-xs text-zinc-300 flex flex-col gap-2">
+                    <span className="font-bold text-white uppercase">📋 Instruções de colagem</span>
+                    <p>Cole ou digite os códigos das figurinhas repetidas separados por vírgula, ponto e vírgula ou uma por linha.</p>
+                    <div className="bg-black/30 p-2 rounded text-zinc-400 font-mono text-[10px]">
+                      Exemplo: ARG 1, ARG 2, BRA 5, QAT 12, FRA 9
+                    </div>
+                    <p className="text-amber-400 font-semibold">Todas as figurinhas identificadas serão definidas com quantidade = 2 (Repetida) para entrar na sua fila de trocas.</p>
+                  </div>
+
+                  <textarea
+                    rows={6}
+                    value={textInput}
+                    onChange={(e) => setTextInput(e.target.value)}
+                    placeholder="Cole os códigos aqui..."
+                    className="w-full p-4 rounded-xl bg-black/40 border border-[var(--border-color)] text-white text-sm focus:outline-none focus:border-amber-500 transition-all font-mono"
+                  />
+
+                  {bulkResult && (
+                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-semibold">
+                      {bulkResult}
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-3 mt-4">
+                    <button
+                      onClick={() => setIsBulkModalOpen(false)}
+                      className="px-4 py-2.5 rounded-xl text-xs font-bold text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 transition-colors cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={handleBulkTextSubmit}
+                      disabled={bulkProcessing || !textInput.trim()}
+                      className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-amber-600 hover:bg-amber-500 disabled:opacity-40 transition-colors cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                      {bulkProcessing ? "Processando..." : "Importar como Repetidas"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       
       <style jsx global>{`
         .hide-scrollbar::-webkit-scrollbar {
