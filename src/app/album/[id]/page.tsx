@@ -13,6 +13,7 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
   const [album, setAlbum] = useState<any>(null);
   const [stickers, setStickers] = useState<any[]>([]);
   const [quantities, setQuantities] = useState<{ [stickerId: string]: number }>({});
+  const [prices, setPrices] = useState<{ [stickerId: string]: number | null }>({});
   const [userId, setUserId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -26,6 +27,7 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
   const [textInput, setTextInput] = useState("");
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [bulkResult, setBulkResult] = useState<string | null>(null);
+  const [bulkDefaultPrice, setBulkDefaultPrice] = useState<string>("");
 
   const router = useRouter();
 
@@ -74,14 +76,18 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
         .eq("stickers.album_id", albumId);
 
       const qtyMap: { [stickerId: string]: number } = {};
+      const priceMap: { [stickerId: string]: number | null } = {};
       stickersData.forEach((s) => {
         qtyMap[s.id] = 0;
+        priceMap[s.id] = null;
       });
       userStickersData?.forEach((us) => {
         qtyMap[us.sticker_id] = us.quantity;
+        priceMap[us.sticker_id] = us.price;
       });
 
       setQuantities(qtyMap);
+      setPrices(priceMap);
       setLoading(false);
     }
 
@@ -107,6 +113,7 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
             user_id: userId,
             sticker_id: stickerId,
             quantity: newQty,
+            price: prices[stickerId] ?? null,
             updated_at: new Date().toISOString()
           },
           { onConflict: "user_id,sticker_id" }
@@ -131,6 +138,36 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
       console.error(err);
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const updatePrice = async (stickerId: string, newPrice: number | null) => {
+    if (!userId) return;
+
+    setPrices(prev => ({
+      ...prev,
+      [stickerId]: newPrice
+    }));
+
+    try {
+      const { error } = await supabase
+        .from("user_stickers")
+        .upsert(
+          {
+            user_id: userId,
+            sticker_id: stickerId,
+            quantity: quantities[stickerId] || 0,
+            price: newPrice,
+            updated_at: new Date().toISOString()
+          },
+          { onConflict: "user_id,sticker_id" }
+        );
+
+      if (error) {
+        console.error("Error updating sticker price", error);
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -163,11 +200,14 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
     }
 
     try {
+      const parsedPrice = bulkDefaultPrice.trim() !== "" ? parseFloat(bulkDefaultPrice) : null;
+
       // Upsert them with quantity = 2 (duplicate/to trade)
       const upserts = matchedStickers.map(s => ({
         user_id: userId,
         sticker_id: s.id,
         quantity: 2,
+        price: parsedPrice,
         updated_at: new Date().toISOString()
       }));
 
@@ -177,7 +217,7 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
 
       if (error) throw error;
 
-      // Update local quantities
+      // Update local quantities and prices
       setQuantities(prev => {
         const next = { ...prev };
         matchedStickers.forEach(s => {
@@ -186,8 +226,17 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
         return next;
       });
 
+      setPrices(prev => {
+        const next = { ...prev };
+        matchedStickers.forEach(s => {
+          next[s.id] = parsedPrice;
+        });
+        return next;
+      });
+
       setBulkResult(`Adicionadas ${matchedStickers.length} figurinhas como repetidas com sucesso!`);
       setTextInput("");
+      setBulkDefaultPrice("");
       setTimeout(() => {
         setIsBulkModalOpen(false);
         setBulkResult(null);
@@ -433,26 +482,46 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
                         </div>
 
                         {/* Quantity Selector */}
-                        <div className="flex items-center justify-between bg-black/40 rounded-lg p-1 border border-white/5">
-                          <button
-                            onClick={() => updateQuantity(sticker.id, qty - 1)}
-                            disabled={qty === 0 || updatingId === sticker.id}
-                            className="h-8 w-8 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 text-white disabled:opacity-30 transition-colors cursor-pointer"
-                          >
-                            <Minus className="h-4 w-4" />
-                          </button>
-                          
-                          <span className="text-white font-bold text-sm w-8 text-center">
-                            {qty}
-                          </span>
-                          
-                          <button
-                            onClick={() => updateQuantity(sticker.id, qty + 1)}
-                            disabled={updatingId === sticker.id}
-                            className="h-8 w-8 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 text-white transition-colors cursor-pointer"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </button>
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center justify-between bg-black/40 rounded-lg p-1 border border-white/5">
+                            <button
+                              onClick={() => updateQuantity(sticker.id, qty - 1)}
+                              disabled={qty === 0 || updatingId === sticker.id}
+                              className="h-8 w-8 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 text-white disabled:opacity-30 transition-colors cursor-pointer"
+                            >
+                              <Minus className="h-4 w-4" />
+                            </button>
+                            
+                            <span className="text-white font-bold text-sm w-8 text-center">
+                              {qty}
+                            </span>
+                            
+                            <button
+                              onClick={() => updateQuantity(sticker.id, qty + 1)}
+                              disabled={updatingId === sticker.id}
+                              className="h-8 w-8 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 text-white transition-colors cursor-pointer"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          {qty > 1 && (
+                            <div className="flex items-center gap-1.5 bg-black/30 rounded-lg px-2 py-1.5 border border-white/5">
+                              <span className="text-[10px] text-zinc-400 font-semibold shrink-0">Venda: R$</span>
+                              <input
+                                type="number"
+                                step="0.10"
+                                min="0"
+                                placeholder="0.00"
+                                value={prices[sticker.id] ?? ""}
+                                onChange={(e) => {
+                                  const val = e.target.value === "" ? null : parseFloat(e.target.value);
+                                  updatePrice(sticker.id, val);
+                                }}
+                                className="w-full bg-transparent text-white text-xs font-bold focus:outline-none placeholder-zinc-600 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              />
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -576,6 +645,25 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
                     placeholder="Cole os códigos aqui..."
                     className="w-full p-4 rounded-xl bg-black/40 border border-[var(--border-color)] text-white text-sm focus:outline-none focus:border-amber-500 transition-all font-mono"
                   />
+
+                  <div>
+                    <label className="block text-zinc-400 text-xs font-semibold uppercase tracking-wider mb-2">
+                      Preço de Venda Padrão (Opcional)
+                    </label>
+                    <div className="flex items-center gap-2 bg-black/40 border border-[var(--border-color)] rounded-xl px-4 py-3 max-w-[200px]">
+                      <span className="text-zinc-500 text-sm">R$</span>
+                      <input
+                        type="number"
+                        step="0.10"
+                        min="0"
+                        placeholder="0.00"
+                        value={bulkDefaultPrice}
+                        onChange={(e) => setBulkDefaultPrice(e.target.value)}
+                        className="bg-transparent text-white text-sm font-bold focus:outline-none placeholder-zinc-650 w-full"
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-500 mt-1">Todas as figurinhas desse lote serão salvas com este valor de venda.</p>
+                  </div>
 
                   {bulkResult && (
                     <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-semibold">

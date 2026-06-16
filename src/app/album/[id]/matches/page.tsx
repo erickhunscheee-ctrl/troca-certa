@@ -90,6 +90,7 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
         sticker_id,
         quantity,
         user_id,
+        price,
         profiles(id, name, city, state),
         stickers!inner(album_id)
       `)
@@ -102,7 +103,7 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
     }
 
     // Group other users' stickers by user_id
-    const userInventories: { [userId: string]: { profile: any; duplicates: string[]; missing: string[] } } = {};
+    const userInventories: { [userId: string]: { profile: any; duplicates: { id: string; price: number | null }[]; missing: string[] } } = {};
 
     otherUserStickers.forEach((item: any) => {
       if (!item.profiles) return;
@@ -117,7 +118,7 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
 
       const inventory = userInventories[uid];
       if (item.quantity > 1) {
-        inventory.duplicates.push(item.sticker_id);
+        inventory.duplicates.push({ id: item.sticker_id, price: item.price });
       }
       if (item.quantity > 0) {
         inventory.missing = inventory.missing.filter((sid) => sid !== item.sticker_id);
@@ -132,8 +133,12 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
     Object.keys(userInventories).forEach((uid) => {
       const inventory = userInventories[uid];
 
-      const theirDuplicatesFull = inventory.duplicates.map((sid) => stickersMap.get(sid)).sort((a, b) => a.number.localeCompare(b.number));
-      const theyHaveINeedFull = inventory.duplicates.filter((sid) => currentMissingIds.includes(sid)).map((sid) => stickersMap.get(sid)).sort((a, b) => a.number.localeCompare(b.number));
+      const theirDuplicatesFull = inventory.duplicates.map((dup) => ({
+        ...stickersMap.get(dup.id),
+        price: dup.price
+      })).sort((a, b) => a.number.localeCompare(b.number));
+
+      const theyHaveINeedFull = theirDuplicatesFull.filter((dup) => currentMissingIds.includes(dup.id));
       const iHaveTheyNeedFull = myDuplicateIds.filter((sid) => inventory.missing.includes(sid)).map((sid) => stickersMap.get(sid)).sort((a, b) => a.number.localeCompare(b.number));
 
       // Build Partner Object
@@ -370,8 +375,11 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
                         <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-3">Ele tem que eu preciso:</h4>
                         <div className="flex flex-wrap gap-2">
                           {match.theyHaveINeed.map((s: any) => (
-                            <span key={s.id} className="text-[11px] font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-2 py-1 rounded">
-                              {s.number} - {s.name}
+                            <span key={s.id} className="text-[11px] font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-2 py-1 rounded flex items-center gap-1.5">
+                              <span>{s.number} - {s.name}</span>
+                              {s.price !== null && s.price !== undefined && (
+                                <span className="bg-emerald-500 text-black text-[9px] px-1 rounded font-extrabold">R$ {parseFloat(s.price).toFixed(2)}</span>
+                              )}
                             </span>
                           ))}
                         </div>
@@ -394,8 +402,11 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
                       <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-3">Ele tem as figurinhas que você procura:</h4>
                       <div className="flex flex-wrap gap-2">
                         {match.theyHaveINeed.map((s: any) => (
-                          <span key={s.id} className="text-[11px] font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-2 py-1 rounded">
-                            {s.number} - {s.name}
+                          <span key={s.id} className="text-[11px] font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-2 py-1 rounded flex items-center gap-1.5">
+                            <span>{s.number} - {s.name}</span>
+                            {s.price !== null && s.price !== undefined && (
+                              <span className="bg-emerald-500 text-black text-[9px] px-1 rounded font-extrabold">R$ {parseFloat(s.price).toFixed(2)}</span>
+                            )}
                           </span>
                         ))}
                       </div>
@@ -409,10 +420,13 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
                         {match.theirDuplicates.map((s: any) => {
                           const iNeedThis = myMissingIds.includes(s.id);
                           return (
-                            <span key={s.id} className={`text-[11px] font-bold border px-2 py-1 rounded ${
+                            <span key={s.id} className={`text-[11px] font-bold border px-2 py-1 rounded flex items-center gap-1.5 ${
                               iNeedThis ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/20" : "bg-zinc-800/50 text-zinc-400 border-zinc-700/50"
                             }`}>
-                              {s.number} - {s.name}
+                              <span>{s.number} - {s.name}</span>
+                              {s.price !== null && s.price !== undefined && (
+                                <span className="bg-emerald-500 text-black text-[9px] px-1 rounded font-extrabold">R$ {parseFloat(s.price).toFixed(2)}</span>
+                              )}
                             </span>
                           );
                         })}
@@ -520,11 +534,18 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
                                   <span>{s.number} - {s.name}</span>
                                   {active && <Check className="h-4 w-4 text-emerald-400 shrink-0" />}
                                 </div>
-                                {iNeed && !active && (
-                                  <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded w-max">
-                                    Você precisa
-                                  </span>
-                                )}
+                                <div className="flex gap-1.5 items-center mt-1">
+                                  {iNeed && !active && (
+                                    <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded w-max">
+                                      Você precisa
+                                    </span>
+                                  )}
+                                  {s.price !== null && s.price !== undefined && (
+                                    <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded w-max font-bold">
+                                      R$ {parseFloat(s.price).toFixed(2)}
+                                    </span>
+                                  )}
+                                </div>
                               </button>
                             );
                           })}
