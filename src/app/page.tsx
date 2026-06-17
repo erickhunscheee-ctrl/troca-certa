@@ -24,6 +24,7 @@ type HomeEvent = {
   description: string | null;
   location: string | null;
   starts_at: string | null;
+  image_url: string | null;
   action_url: string | null;
   action_label: string | null;
 };
@@ -48,7 +49,7 @@ export default function Home() {
     async function loadEvents() {
       const { data, error } = await supabase
         .from("events")
-        .select("id,title,description,location,starts_at,action_url,action_label")
+        .select("id,title,description,location,starts_at,image_url,action_url,action_label")
         .eq("active", true)
         .order("featured", { ascending: false })
         .order("starts_at", { ascending: true, nullsFirst: false })
@@ -66,6 +67,8 @@ export default function Home() {
     loadEvents();
   }, []);
 
+  const featuredEvent = events[0] ?? null;
+
   return (
     <div className="flex min-h-screen flex-col bg-[var(--background)]">
       <Navbar />
@@ -75,10 +78,7 @@ export default function Home() {
           <section className="w-full overflow-hidden rounded-[2rem] bg-[var(--brand-navy)] shadow-2xl shadow-[var(--brand-navy)]/15">
             <div className="grid items-stretch lg:grid-cols-[1.1fr_0.9fr]">
               <div className="flex flex-col items-start p-8 text-left sm:p-12 lg:p-14">
-                <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-[#ffffff]">
-                  <Sparkles className="h-3.5 w-3.5 text-[var(--warning)]" />
-                  Album Copa 2026
-                </div>
+
 
                 <h1 className="max-w-2xl text-4xl font-extrabold leading-tight text-[#ffffff] sm:text-6xl">
                   Troque. Complete. Celebre.
@@ -172,7 +172,73 @@ export default function Home() {
             </div>
           </section>
 
-          <div className="mt-14 grid w-full max-w-5xl grid-cols-1 gap-5 text-left sm:grid-cols-2 lg:grid-cols-4">
+          {featuredEvent && (
+            <section className="mt-8 w-full max-w-6xl overflow-hidden rounded-[1.75rem] border border-[var(--border-color)] bg-white text-left shadow-2xl shadow-[var(--brand-navy)]/10">
+              <div className="grid lg:grid-cols-[1.25fr_0.75fr]">
+                <div className="flex flex-col justify-center p-6 sm:p-8 lg:p-10">
+                  <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-3 py-1 text-xs font-extrabold uppercase tracking-wider text-[var(--accent)]">
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    Evento em destaque
+                  </div>
+
+                  <h2 className="max-w-3xl text-2xl font-extrabold text-white sm:text-3xl">
+                    {featuredEvent.title}
+                  </h2>
+
+                  {featuredEvent.description && (
+                    <p className="mt-3 max-w-3xl text-sm leading-relaxed text-zinc-400 sm:text-base">
+                      {featuredEvent.description}
+                    </p>
+                  )}
+
+                  <div className="mt-5 flex flex-wrap gap-3 text-xs font-bold text-zinc-400">
+                    {formatEventDate(featuredEvent.starts_at) && (
+                      <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border-color)] bg-[#f8fafc] px-3 py-2">
+                        <CalendarDays className="h-4 w-4 text-[var(--primary)]" />
+                        {formatEventDate(featuredEvent.starts_at)}
+                      </span>
+                    )}
+                    {featuredEvent.location && (
+                      <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border-color)] bg-[#f8fafc] px-3 py-2">
+                        <MapPin className="h-4 w-4 text-[var(--accent)]" />
+                        {featuredEvent.location}
+                      </span>
+                    )}
+                  </div>
+
+                  <Link
+                    href={featuredEvent.action_url || "/albums"}
+                    className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-[var(--brand-navy)] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-[var(--brand-navy)]/10 transition-colors hover:bg-[var(--primary)]"
+                  >
+                    {featuredEvent.action_label || "Ver evento"}
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </div>
+
+                <div className="relative min-h-[220px] bg-[var(--brand-navy)] lg:min-h-full">
+                  {featuredEvent.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={featuredEvent.image_url}
+                      alt=""
+                      className="h-full min-h-[220px] w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full min-h-[220px] items-center justify-center bg-[var(--brand-navy)] p-8">
+                      <div className="rounded-[1.5rem] border border-white/15 bg-white/10 p-8 text-center text-[#ffffff]">
+                        <CalendarDays className="mx-auto h-12 w-12 text-[var(--warning)]" />
+                        <p className="mt-4 text-sm font-extrabold uppercase tracking-wider text-[#ffffff]">
+                          Troque. Complete. Celebre.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
+
+          <div className="mt-10 grid w-full max-w-5xl grid-cols-1 gap-5 text-left sm:grid-cols-2 lg:grid-cols-4">
             <div className="glass flex flex-col gap-3 rounded-2xl p-6">
               <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--primary)]/20 bg-[var(--primary)]/10 text-[var(--primary)]">
                 <Coins className="h-5 w-5" />
@@ -214,64 +280,6 @@ export default function Home() {
             </div>
           </div>
 
-          {events.length > 0 && (
-            <section className="mt-14 w-full max-w-5xl text-left">
-              <div className="mb-5 flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-white">Eventos de troca</h2>
-                  <p className="mt-1 text-sm text-zinc-400">
-                    Encontros ativos para acelerar sua colecao.
-                  </p>
-                </div>
-                <Link
-                  href="/albums"
-                  className="hidden items-center gap-2 rounded-full border border-[var(--border-color)] bg-white px-4 py-2 text-xs font-bold text-[var(--brand-navy)] shadow-sm transition-colors hover:bg-[#eef4ff] sm:inline-flex"
-                >
-                  Participar
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                {events.map((event) => (
-                  <article key={event.id} className="glass rounded-2xl p-5">
-                    <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--accent)]/20 bg-[var(--accent)]/10 text-[var(--accent)]">
-                      <CalendarDays className="h-5 w-5" />
-                    </div>
-                    <h3 className="text-base font-bold text-white">{event.title}</h3>
-                    {event.description && (
-                      <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-zinc-400">
-                        {event.description}
-                      </p>
-                    )}
-                    <div className="mt-4 flex flex-col gap-2 text-xs text-zinc-400">
-                      {formatEventDate(event.starts_at) && (
-                        <span className="inline-flex items-center gap-2">
-                          <CalendarDays className="h-3.5 w-3.5 text-[var(--primary)]" />
-                          {formatEventDate(event.starts_at)}
-                        </span>
-                      )}
-                      {event.location && (
-                        <span className="inline-flex items-center gap-2">
-                          <MapPin className="h-3.5 w-3.5 text-[var(--accent)]" />
-                          {event.location}
-                        </span>
-                      )}
-                    </div>
-                    {event.action_url && (
-                      <Link
-                        href={event.action_url}
-                        className="mt-5 inline-flex items-center gap-2 text-xs font-bold text-[var(--primary)] hover:underline"
-                      >
-                        {event.action_label || "Ver detalhes"}
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </Link>
-                    )}
-                  </article>
-                ))}
-              </div>
-            </section>
-          )}
         </div>
       </main>
 
