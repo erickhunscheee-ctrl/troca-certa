@@ -13,6 +13,10 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  const getErrorMessage = (err: unknown, fallback: string) => {
+    return err instanceof Error ? err.message : fallback;
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -31,10 +35,10 @@ export default function Login() {
       }
 
       if (data.user) {
-        router.push("/dashboard");
+        router.push("/albums");
       }
-    } catch (err: any) {
-      setError(err.message || "Ocorreu um erro ao tentar entrar.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Ocorreu um erro ao tentar entrar."));
     } finally {
       setLoading(false);
     }
@@ -45,12 +49,12 @@ export default function Login() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/dashboard`,
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/albums`,
         },
       });
       if (error) throw error;
-    } catch (err: any) {
-      setError(err.message || "Ocorreu um erro ao conectar com Google.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Ocorreu um erro ao conectar com Google."));
     }
   };
 

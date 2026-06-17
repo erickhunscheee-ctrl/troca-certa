@@ -1,10 +1,58 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
-import { Coins, Zap, ShieldCheck, MessageSquare, ArrowRight, Sparkles } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { Coins, Zap, ShieldCheck, MessageSquare, ArrowRight, Sparkles, CalendarDays, MapPin } from "lucide-react";
+
+type HomeEvent = {
+  id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  starts_at: string | null;
+  action_url: string | null;
+  action_label: string | null;
+};
+
+function formatEventDate(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
 
 export default function Home() {
+  const [events, setEvents] = useState<HomeEvent[]>([]);
+
+  useEffect(() => {
+    async function loadEvents() {
+      const { data, error } = await supabase
+        .from("events")
+        .select("id,title,description,location,starts_at,action_url,action_label")
+        .eq("active", true)
+        .order("featured", { ascending: false })
+        .order("starts_at", { ascending: true, nullsFirst: false })
+        .limit(3);
+
+      if (error) {
+        console.error("Error loading events", error);
+        return;
+      }
+
+      setEvents(data ?? []);
+    }
+
+    loadEvents();
+  }, []);
+
   return (
     <div className="flex min-h-screen flex-col bg-[var(--background)]">
       <Navbar />
@@ -93,6 +141,68 @@ export default function Home() {
               </p>
             </div>
           </div>
+
+          {events.length > 0 && (
+            <section className="mt-16 w-full max-w-5xl text-left">
+              <div className="mb-5 flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Eventos de troca</h2>
+                  <p className="mt-1 text-sm text-zinc-400">
+                    Encontros ativos para acelerar sua colecao.
+                  </p>
+                </div>
+                <Link
+                  href="/albums"
+                  className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-zinc-200 transition-colors hover:bg-white/10 sm:inline-flex"
+                >
+                  Participar
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                {events.map((event) => (
+                  <article
+                    key={event.id}
+                    className="glass rounded-2xl p-5"
+                  >
+                    <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--accent)]/20 bg-[var(--accent)]/10 text-[var(--accent)]">
+                      <CalendarDays className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-base font-bold text-white">{event.title}</h3>
+                    {event.description && (
+                      <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-zinc-400">
+                        {event.description}
+                      </p>
+                    )}
+                    <div className="mt-4 flex flex-col gap-2 text-xs text-zinc-400">
+                      {formatEventDate(event.starts_at) && (
+                        <span className="inline-flex items-center gap-2">
+                          <CalendarDays className="h-3.5 w-3.5 text-[var(--primary)]" />
+                          {formatEventDate(event.starts_at)}
+                        </span>
+                      )}
+                      {event.location && (
+                        <span className="inline-flex items-center gap-2">
+                          <MapPin className="h-3.5 w-3.5 text-[var(--accent)]" />
+                          {event.location}
+                        </span>
+                      )}
+                    </div>
+                    {event.action_url && (
+                      <Link
+                        href={event.action_url}
+                        className="mt-5 inline-flex items-center gap-2 text-xs font-bold text-[var(--primary)] hover:underline"
+                      >
+                        {event.action_label || "Ver detalhes"}
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
+                    )}
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </main>
 
