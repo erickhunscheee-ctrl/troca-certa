@@ -224,7 +224,7 @@ export default function Navbar() {
                   }`}
                 >
                   <BookOpen className="h-4 w-4" />
-                  Ãlbuns
+                  Albuns
                 </Link>
                 <Link
                   href="/trades"
