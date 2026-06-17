@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
@@ -154,11 +155,35 @@ export default function Albums() {
           </section>
         )}
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">Escolha um Álbum</h1>
-          <p className="text-zinc-400 text-sm mt-1">
-            Selecione o álbum que você está colecionando no momento para começar a organizar e trocar figurinhas.
-          </p>
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Escolha um Álbum</h1>
+            <p className="text-zinc-400 text-sm mt-1">
+              Selecione o álbum que você está colecionando no momento para começar a organizar e trocar figurinhas.
+            </p>
+          </div>
+
+          <a
+            href="https://www.instagram.com/group.pixels/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Abrir Instagram da Group Pixels"
+            className="inline-flex w-fit shrink-0 items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left transition-all hover:border-[var(--accent)]/40 hover:bg-white/10"
+          >
+            <Image
+              src="/pixels.png"
+              alt="Group Pixels"
+              width={40}
+              height={40}
+              className="h-10 w-10 rounded-lg object-cover"
+            />
+            <span className="flex flex-col">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                Divulgação
+              </span>
+              <span className="text-sm font-bold text-white">group.pixels</span>
+            </span>
+          </a>
         </div>
 
         {albums.length === 0 ? (
