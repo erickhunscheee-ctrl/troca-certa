@@ -16,7 +16,39 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Troca Certa | Troque. Complete. Celebre.",
   description:
-    "Organize seus albuns, encontre colecionadores e complete suas colecoes com trocas seguras.",
+    "Organize seus álbuns, encontre colecionadores e complete suas coleções com trocas seguras.",
+
+  icons: {
+    icon: "/logo_troca.png",
+    shortcut: "/logo_troca.png",
+    apple: "/logo_troca.png",
+  },
+
+  openGraph: {
+    title: "Troca Certa | Troque. Complete. Celebre.",
+    description:
+      "Organize seus álbuns, encontre colecionadores e complete suas coleções com trocas seguras.",
+    url: "https://seu-dominio.com",
+    siteName: "Troca Certa",
+    locale: "pt_BR",
+    type: "website",
+    images: [
+      {
+        url: "/logo_troca.png",
+        width: 1200,
+        height: 630,
+        alt: "Logo Troca Certa",
+      },
+    ],
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    title: "Troca Certa | Troque. Complete. Celebre.",
+    description:
+      "Organize seus álbuns, encontre colecionadores e complete suas coleções com trocas seguras.",
+    images: ["/logo_troca.png"],
+  },
 };
 
 export default function RootLayout({
