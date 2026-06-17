@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
+import { showErrorToast } from "@/lib/toast";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -15,6 +16,11 @@ export default function Login() {
 
   const getErrorMessage = (err: unknown, fallback: string) => {
     return err instanceof Error ? err.message : fallback;
+  };
+
+  const showError = (message: string) => {
+    setError(message);
+    showErrorToast(message);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -29,7 +35,7 @@ export default function Login() {
       });
 
       if (signInError) {
-        setError(signInError.message);
+        showError(signInError.message);
         setLoading(false);
         return;
       }
@@ -38,7 +44,7 @@ export default function Login() {
         router.push("/albums");
       }
     } catch (err: unknown) {
-      setError(getErrorMessage(err, "Ocorreu um erro ao tentar entrar."));
+      showError(getErrorMessage(err, "Ocorreu um erro ao tentar entrar."));
     } finally {
       setLoading(false);
     }
@@ -54,7 +60,7 @@ export default function Login() {
       });
       if (error) throw error;
     } catch (err: unknown) {
-      setError(getErrorMessage(err, "Ocorreu um erro ao conectar com Google."));
+      showError(getErrorMessage(err, "Ocorreu um erro ao conectar com Google."));
     }
   };
 

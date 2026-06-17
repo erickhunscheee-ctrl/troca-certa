@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
+import { showErrorToast } from "@/lib/toast";
 import { ArrowLeft, Plus, Minus, Check, Copy, HelpCircle, Search, Filter, ListPlus, Send } from "lucide-react";
 
 export default function AlbumDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -49,6 +50,7 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
 
       if (albumError || !albumData) {
         console.error("Error loading album", albumError);
+        showErrorToast("Nao foi possivel carregar este album.");
         router.push("/dashboard");
         return;
       }
@@ -64,6 +66,7 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
 
       if (stickersError || !stickersData) {
         console.error("Error loading stickers", stickersError);
+        showErrorToast("Nao foi possivel carregar as figurinhas deste album.");
         return;
       }
       setStickers(stickersData);
@@ -121,6 +124,7 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
 
       if (error) {
         console.error("Error updating sticker quantity", error);
+        showErrorToast("Nao foi possivel atualizar a quantidade da figurinha.");
         // Revert local state on error
         const { data: original } = await supabase
           .from("user_stickers")
@@ -136,6 +140,7 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
       }
     } catch (err) {
       console.error(err);
+      showErrorToast("Ocorreu um erro ao atualizar a quantidade.");
     } finally {
       setUpdatingId(null);
     }
@@ -165,9 +170,11 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
 
       if (error) {
         console.error("Error updating sticker price", error);
+        showErrorToast("Nao foi possivel atualizar o preco da figurinha.");
       }
     } catch (err) {
       console.error(err);
+      showErrorToast("Ocorreu um erro ao atualizar o preco.");
     }
   };
 
@@ -184,7 +191,7 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
 
     if (tokens.length === 0) {
       setBulkProcessing(false);
-      alert("Nenhuma figurinha identificada no texto.");
+      showErrorToast("Nenhuma figurinha identificada no texto.");
       return;
     }
 
@@ -195,7 +202,7 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
 
     if (matchedStickers.length === 0) {
       setBulkProcessing(false);
-      alert("Nenhum código digitado corresponde a figurinhas do álbum.");
+      showErrorToast("Nenhum codigo digitado corresponde a figurinhas do album.");
       return;
     }
 
@@ -243,7 +250,7 @@ export default function AlbumDetail({ params }: { params: Promise<{ id: string }
       }, 2000);
     } catch (err: any) {
       console.error(err);
-      alert("Erro ao salvar figurinhas em massa: " + err.message);
+      showErrorToast("Erro ao salvar figurinhas em massa: " + err.message);
     } finally {
       setBulkProcessing(false);
     }

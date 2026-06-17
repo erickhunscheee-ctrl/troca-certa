@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
+import { showErrorToast } from "@/lib/toast";
 import { Coins, CheckCircle, HelpCircle, Copy, AlertCircle, MessageSquare } from "lucide-react";
 
 export default function Dashboard() {
@@ -42,6 +43,7 @@ export default function Dashboard() {
 
       if (albumError || !activeAlbums) {
         console.error("Error loading albums", albumError);
+        showErrorToast("Nao foi possivel carregar os albuns ativos.");
         setLoading(false);
         return;
       }

@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
+import { showErrorToast } from "@/lib/toast";
 import { Trophy, Layers, ArrowRight, CalendarDays, MapPin } from "lucide-react";
 
 type EventBanner = {
@@ -70,12 +71,14 @@ export default function Albums() {
 
       if (error) {
         console.error("Error loading albums", error);
+        showErrorToast("Nao foi possivel carregar os albuns ativos.");
       } else if (activeAlbums) {
         setAlbums(activeAlbums);
       }
 
       if (eventsError) {
         console.error("Error loading events", eventsError);
+        showErrorToast("Nao foi possivel carregar o evento em destaque.");
       } else {
         setEventBanner(activeEvents?.[0] ?? null);
       }
@@ -102,30 +105,30 @@ export default function Albums() {
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
         {eventBanner && (
-          <section className="mb-8 overflow-hidden rounded-2xl border border-[var(--primary)]/30 bg-white/5">
+          <section className="mb-8 overflow-hidden rounded-[1.5rem] border border-[var(--brand-navy)]/10 bg-[var(--brand-navy)] shadow-2xl shadow-[var(--brand-navy)]/10">
             <div className="grid gap-0 md:grid-cols-[1.3fr_0.7fr]">
               <div className="p-6 sm:p-8">
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[var(--accent)]">
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#ffffff]">
                   <CalendarDays className="h-3.5 w-3.5" />
                   Evento em destaque
                 </div>
-                <h2 className="text-2xl font-extrabold text-white sm:text-3xl">
+                <h2 className="text-2xl font-extrabold text-[#ffffff] sm:text-3xl">
                   {eventBanner.title}
                 </h2>
                 {eventBanner.description && (
-                  <p className="mt-3 max-w-2xl text-sm leading-relaxed text-zinc-300">
+                  <p className="mt-3 max-w-2xl text-sm leading-relaxed text-blue-100">
                     {eventBanner.description}
                   </p>
                 )}
-                <div className="mt-5 flex flex-wrap gap-3 text-xs font-medium text-zinc-300">
+                <div className="mt-5 flex flex-wrap gap-3 text-xs font-bold text-[#ffffff]">
                   {formatEventDate(eventBanner.starts_at) && (
-                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-black/30 px-3 py-2">
-                      <CalendarDays className="h-4 w-4 text-[var(--primary)]" />
+                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-2">
+                      <CalendarDays className="h-4 w-4 text-[var(--warning)]" />
                       {formatEventDate(eventBanner.starts_at)}
                     </span>
                   )}
                   {eventBanner.location && (
-                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-black/30 px-3 py-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-2">
                       <MapPin className="h-4 w-4 text-[var(--accent)]" />
                       {eventBanner.location}
                     </span>
@@ -134,14 +137,14 @@ export default function Albums() {
                 {eventBanner.action_url && (
                   <Link
                     href={eventBanner.action_url}
-                    className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--primary-hover)] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-[var(--primary)]/20 transition-all hover:scale-[1.02]"
+                    className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-[var(--brand-navy)] shadow-lg shadow-black/10 transition-all hover:bg-blue-50"
                   >
                     {eventBanner.action_label || "Ver evento"}
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                 )}
               </div>
-              <div className="min-h-48 bg-gradient-to-br from-[var(--primary)]/25 via-black/10 to-[var(--accent)]/20 md:min-h-full">
+              <div className="min-h-48 bg-[linear-gradient(135deg,rgba(17,77,255,0.34),rgba(16,185,129,0.3))] md:min-h-full">
                 {eventBanner.image_url && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img

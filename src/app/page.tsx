@@ -4,7 +4,19 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
-import { Coins, Zap, ShieldCheck, MessageSquare, ArrowRight, Sparkles, CalendarDays, MapPin } from "lucide-react";
+import { showErrorToast } from "@/lib/toast";
+import {
+  ArrowRight,
+  CalendarDays,
+  Check,
+  Coins,
+  MapPin,
+  MessageSquare,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+  Zap,
+} from "lucide-react";
 
 type HomeEvent = {
   id: string;
@@ -44,6 +56,7 @@ export default function Home() {
 
       if (error) {
         console.error("Error loading events", error);
+        showErrorToast("Nao foi possivel carregar os eventos de troca.");
         return;
       }
 
@@ -57,93 +70,152 @@ export default function Home() {
     <div className="flex min-h-screen flex-col bg-[var(--background)]">
       <Navbar />
 
-      <main className="flex-1 flex flex-col justify-center relative overflow-hidden">
-        {/* Decorative background gradients */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[var(--primary)]/10 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-1/4 left-1/3 -translate-x-1/2 translate-y-1/2 w-[400px] h-[400px] bg-[var(--accent)]/10 rounded-full blur-[100px] pointer-events-none" />
+      <main className="relative flex-1 overflow-hidden">
+        <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-center px-4 py-10 text-center sm:px-6 lg:px-8">
+          <section className="w-full overflow-hidden rounded-[2rem] bg-[var(--brand-navy)] shadow-2xl shadow-[var(--brand-navy)]/15">
+            <div className="grid items-stretch lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="flex flex-col items-start p-8 text-left sm:p-12 lg:p-14">
+                <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-[#ffffff]">
+                  <Sparkles className="h-3.5 w-3.5 text-[var(--warning)]" />
+                  Album Copa 2026
+                </div>
 
-        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 relative z-10 flex flex-col items-center text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-zinc-300 mb-8 backdrop-blur-sm animate-pulse">
-            <Sparkles className="h-3.5 w-3.5 text-[var(--accent)]" />
-            <span>Plataforma inteligente para colecionadores</span>
-          </div>
+                <h1 className="max-w-2xl text-4xl font-extrabold leading-tight text-[#ffffff] sm:text-6xl">
+                  Troque. Complete. Celebre.
+                </h1>
 
-          {/* Heading */}
-          <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-6xl max-w-3xl leading-tight">
-            Colecione, encontre matches e{" "}
-            <span className="bg-gradient-to-r from-[var(--primary)] via-indigo-400 to-[var(--accent)] bg-clip-text text-transparent">
-              complete seu álbum
-            </span>
-          </h1>
+                <p className="mt-6 max-w-xl text-base leading-relaxed text-blue-100 sm:text-lg">
+                  Troca Certa conecta colecionadores para organizar figurinhas,
+                  encontrar matches e fechar trocas com seguranca.
+                </p>
 
-          {/* Subheading */}
-          <p className="mt-6 text-lg text-zinc-400 max-w-xl leading-relaxed">
-            O **Troca Certa** ajuda você a cruzar as suas figurinhas repetidas com as que você precisa. Negocie em tempo real com outros colecionadores.
-          </p>
+                <div className="mt-10 flex flex-wrap gap-4">
+                  <Link
+                    href="/register"
+                    className="flex items-center gap-2 rounded-full bg-[var(--primary)] px-6 py-3.5 text-base font-bold text-white shadow-lg shadow-black/20 transition-all hover:bg-[var(--accent)]"
+                  >
+                    Comecar a trocar
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                  <Link
+                    href="/login"
+                    className="rounded-full border border-white/20 bg-white px-6 py-3.5 text-base font-bold text-[var(--brand-navy)] transition-colors hover:bg-blue-50"
+                  >
+                    Entrar na minha conta
+                  </Link>
+                </div>
+              </div>
 
-          {/* Call to Actions */}
-          <div className="mt-10 flex flex-wrap justify-center gap-4">
-            <Link
-              href="/register"
-              className="flex items-center gap-2 px-6 py-3.5 rounded-xl text-base font-semibold bg-gradient-to-r from-[var(--primary)] to-[var(--primary-hover)] hover:from-[var(--primary-hover)] hover:to-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20 transition-all hover:scale-[1.03] active:scale-95"
-            >
-              Começar a trocar
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/login"
-              className="px-6 py-3.5 rounded-xl text-base font-semibold bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-colors backdrop-blur-sm"
-            >
-              Entrar na minha conta
-            </Link>
-          </div>
+              <div className="flex min-h-[360px] items-center justify-center bg-[#eef4ff] p-8">
+                <div className="w-full max-w-sm rounded-[2rem] border border-white/60 bg-white p-4 text-left shadow-2xl">
+                  <div className="rounded-2xl bg-[var(--brand-navy)] p-5 text-[#ffffff]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-blue-100">
+                        Album
+                      </span>
+                      <span className="rounded-full bg-[var(--warning)] px-2 py-1 text-xs font-extrabold text-[var(--brand-navy)]">
+                        2026
+                      </span>
+                    </div>
+                    <h2 className="mt-3 text-2xl font-extrabold text-[#ffffff]">
+                      Copa 2026
+                    </h2>
+                    <p className="mt-1 text-sm text-blue-100">
+                      Sua colecao. Suas trocas. Suas conquistas.
+                    </p>
+                    <div className="mt-6 h-2 rounded-full bg-white/15">
+                      <div className="h-full w-7/12 rounded-full bg-[var(--accent)]" />
+                    </div>
+                  </div>
 
-          {/* Features Grid */}
-          <div className="mt-24 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 max-w-5xl w-full text-left">
-            <div className="glass p-6 rounded-2xl flex flex-col gap-3">
-              <span className="h-10 w-10 flex items-center justify-center rounded-lg bg-[var(--primary)]/10 border border-[var(--primary)]/20 text-[var(--primary)]">
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl border border-[var(--border-color)] bg-[#f8fafc] p-4">
+                      <p className="text-xs font-bold text-[var(--brand-slate)]">
+                        Minhas figurinhas
+                      </p>
+                      <p className="mt-2 text-xl font-extrabold text-[var(--primary)]">
+                        312 / 680
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-[var(--border-color)] bg-[#f8fafc] p-4">
+                      <p className="text-xs font-bold text-[var(--brand-slate)]">
+                        Quero trocar
+                      </p>
+                      <p className="mt-2 text-xl font-extrabold text-[var(--accent)]">
+                        24
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 rounded-2xl border border-[var(--border-color)] bg-[#f8fafc] p-4">
+                    <div className="flex items-center gap-3">
+                      <span className="relative block h-10 w-12 shrink-0">
+                        <span className="absolute left-0 top-1 flex h-8 w-8 rotate-[-10deg] items-center justify-center rounded-lg bg-[var(--brand-navy)] text-white">
+                          <RefreshCw className="h-4 w-4" />
+                        </span>
+                        <span className="absolute right-0 top-1 flex h-8 w-8 rotate-[10deg] items-center justify-center rounded-lg bg-[var(--accent)] text-white">
+                          <Check className="h-4 w-4" />
+                        </span>
+                      </span>
+                      <div>
+                        <p className="text-sm font-extrabold text-[var(--brand-navy)]">
+                          Trocas ativas
+                        </p>
+                        <p className="text-xs font-medium text-[var(--brand-slate)]">
+                          1 nova solicitacao
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div className="mt-14 grid w-full max-w-5xl grid-cols-1 gap-5 text-left sm:grid-cols-2 lg:grid-cols-4">
+            <div className="glass flex flex-col gap-3 rounded-2xl p-6">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--primary)]/20 bg-[var(--primary)]/10 text-[var(--primary)]">
                 <Coins className="h-5 w-5" />
               </span>
-              <h3 className="font-semibold text-white text-lg">Álbum Inteligente</h3>
-              <p className="text-sm text-zinc-400 leading-relaxed">
-                Adicione suas figurinhas e veja na hora o que tem, o que falta e o que tem repetido.
+              <h3 className="text-lg font-bold text-white">Album inteligente</h3>
+              <p className="text-sm leading-relaxed text-zinc-400">
+                Controle o que tem, o que falta e o que esta repetido.
               </p>
             </div>
 
-            <div className="glass p-6 rounded-2xl flex flex-col gap-3">
-              <span className="h-10 w-10 flex items-center justify-center rounded-lg bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)]">
+            <div className="glass flex flex-col gap-3 rounded-2xl p-6">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--accent)]/20 bg-[var(--accent)]/10 text-[var(--accent)]">
                 <Zap className="h-5 w-5" />
               </span>
-              <h3 className="font-semibold text-white text-lg">Matchmaking Real</h3>
-              <p className="text-sm text-zinc-400 leading-relaxed">
-                Encontre usuários que precisam do que você tem repetido e que têm o que você precisa.
+              <h3 className="text-lg font-bold text-white">Matches reais</h3>
+              <p className="text-sm leading-relaxed text-zinc-400">
+                Encontre quem precisa do que voce tem e oferece o que voce busca.
               </p>
             </div>
 
-            <div className="glass p-6 rounded-2xl flex flex-col gap-3">
-              <span className="h-10 w-10 flex items-center justify-center rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+            <div className="glass flex flex-col gap-3 rounded-2xl p-6">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--warning)]/30 bg-[var(--warning)]/15 text-[var(--warning)]">
                 <MessageSquare className="h-5 w-5" />
               </span>
-              <h3 className="font-semibold text-white text-lg">Chat em Tempo Real</h3>
-              <p className="text-sm text-zinc-400 leading-relaxed">
-                Negocie os detalhes da troca e combine o ponto de encontro com o chat do Supabase Realtime.
+              <h3 className="text-lg font-bold text-white">Chat direto</h3>
+              <p className="text-sm leading-relaxed text-zinc-400">
+                Combine detalhes da troca e mantenha tudo registrado.
               </p>
             </div>
 
-            <div className="glass p-6 rounded-2xl flex flex-col gap-3">
-              <span className="h-10 w-10 flex items-center justify-center rounded-lg bg-teal-500/10 border border-teal-500/20 text-teal-400">
+            <div className="glass flex flex-col gap-3 rounded-2xl p-6">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#ff7a00]/30 bg-[#ff7a00]/10 text-[#ff7a00]">
                 <ShieldCheck className="h-5 w-5" />
               </span>
-              <h3 className="font-semibold text-white text-lg">Troca Segura</h3>
-              <p className="text-sm text-zinc-400 leading-relaxed">
-                Confirme e conclua a troca diretamente no sistema para atualizar automaticamente os inventários.
+              <h3 className="text-lg font-bold text-white">Troca segura</h3>
+              <p className="text-sm leading-relaxed text-zinc-400">
+                Conclua a troca e atualize automaticamente os inventarios.
               </p>
             </div>
           </div>
 
           {events.length > 0 && (
-            <section className="mt-16 w-full max-w-5xl text-left">
+            <section className="mt-14 w-full max-w-5xl text-left">
               <div className="mb-5 flex items-center justify-between gap-4">
                 <div>
                   <h2 className="text-2xl font-bold text-white">Eventos de troca</h2>
@@ -153,7 +225,7 @@ export default function Home() {
                 </div>
                 <Link
                   href="/albums"
-                  className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-zinc-200 transition-colors hover:bg-white/10 sm:inline-flex"
+                  className="hidden items-center gap-2 rounded-full border border-[var(--border-color)] bg-white px-4 py-2 text-xs font-bold text-[var(--brand-navy)] shadow-sm transition-colors hover:bg-[#eef4ff] sm:inline-flex"
                 >
                   Participar
                   <ArrowRight className="h-3.5 w-3.5" />
@@ -162,10 +234,7 @@ export default function Home() {
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 {events.map((event) => (
-                  <article
-                    key={event.id}
-                    className="glass rounded-2xl p-5"
-                  >
+                  <article key={event.id} className="glass rounded-2xl p-5">
                     <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--accent)]/20 bg-[var(--accent)]/10 text-[var(--accent)]">
                       <CalendarDays className="h-5 w-5" />
                     </div>
@@ -206,8 +275,8 @@ export default function Home() {
         </div>
       </main>
 
-      <footer className="border-t border-white/5 py-8 text-center text-xs text-zinc-500 bg-black/40">
-        <p>© 2026 Troca Certa. Feito para colecionadores da Copa do Mundo 2026 e muito mais.</p>
+      <footer className="border-t border-[var(--border-color)] bg-white/75 py-8 text-center text-xs font-medium text-zinc-500">
+        <p>(c) 2026 Troca Certa. Feito para colecionadores da Copa do Mundo 2026 e muito mais.</p>
       </footer>
     </div>
   );

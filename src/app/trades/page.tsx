@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
+import { showErrorToast, showSuccessToast } from "@/lib/toast";
 import { ClipboardList, Check, X, Ban, MessageSquare, CheckSquare } from "lucide-react";
 
 export default function Trades() {
@@ -49,6 +50,7 @@ export default function Trades() {
 
     if (error) {
       console.error("Error loading trades", error);
+      showErrorToast("Nao foi possivel carregar suas solicitacoes.");
     } else if (requests) {
       // Filter requests involving current user
       const filtered = requests.filter(
@@ -72,7 +74,7 @@ export default function Trades() {
         .eq("id", tradeId);
 
       if (error) {
-        alert("Erro ao atualizar status: " + error.message);
+        showErrorToast("Erro ao atualizar status: " + error.message);
       } else {
         // If status is accepted, automatically create a chat if it doesn't exist
         if (newStatus === "accepted") {
@@ -82,12 +84,14 @@ export default function Trades() {
 
           if (chatError) {
             console.error("Error creating chat", chatError);
+            showErrorToast("Troca aceita, mas nao foi possivel criar o chat.");
           }
         }
         await loadTrades();
       }
     } catch (err) {
       console.error(err);
+      showErrorToast("Ocorreu um erro ao atualizar a solicitacao.");
     } finally {
       setProcessingId(null);
     }
@@ -154,14 +158,14 @@ export default function Trades() {
         .eq("id", trade.id);
 
       if (requestError) {
-        alert("Erro ao concluir a solicitação: " + requestError.message);
+        showErrorToast("Erro ao concluir a solicitacao: " + requestError.message);
       } else {
-        alert("Troca concluída e inventários atualizados com sucesso!");
+        showSuccessToast("Troca concluida e inventarios atualizados com sucesso!");
         await loadTrades();
       }
     } catch (err) {
       console.error(err);
-      alert("Ocorreu um erro durante a conclusão.");
+      showErrorToast("Ocorreu um erro durante a conclusao.");
     } finally {
       setProcessingId(null);
     }

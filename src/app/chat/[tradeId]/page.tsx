@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
+import { showErrorToast } from "@/lib/toast";
 import { ArrowLeft, Send, PhoneCall } from "lucide-react";
 
 export default function ChatPage({ params }: { params: Promise<{ tradeId: string }> }) {
@@ -46,6 +47,7 @@ export default function ChatPage({ params }: { params: Promise<{ tradeId: string
 
       if (tradeError || !tradeData) {
         console.error("Error loading trade", tradeError);
+        showErrorToast("Nao foi possivel carregar esta troca.");
         router.push("/trades");
         return;
       }
@@ -77,6 +79,7 @@ export default function ChatPage({ params }: { params: Promise<{ tradeId: string
 
         if (createError) {
           console.error("Error creating chat row", createError);
+          showErrorToast("Nao foi possivel abrir o chat desta troca.");
           return;
         }
         chatData = newChat && newChat.length > 0 ? newChat[0] : null;
@@ -159,10 +162,11 @@ export default function ChatPage({ params }: { params: Promise<{ tradeId: string
 
       if (error) {
         console.error("Error sending message", error);
-        alert("Erro ao enviar mensagem: " + error.message);
+        showErrorToast("Erro ao enviar mensagem: " + error.message);
       }
     } catch (err) {
       console.error(err);
+      showErrorToast("Ocorreu um erro ao enviar a mensagem.");
     }
   };
 

@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="ee2071d0-97c5-4d1b-a21d-87a2a77509c3" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/src/app/album/[id]/matches/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/album/[id]/matches/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/album/[id]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/album/[id]/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/albums/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/albums/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/chat/[tradeId]/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/chat/[tradeId]/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/dashboard/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/dashboard/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/globals.css" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/globals.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/login/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/login/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/profile/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/profile/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/register/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/register/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app/trades/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/app/trades/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/components/Navbar.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/components/Navbar.tsx" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="EmbeddingIndexingInfo">
+    <option name="cachedIndexableFilesCount" value="35" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="NextEditCompletionFeaturesState">
+    <decayedCancelled>
+      <entry key="MS100" value="1.8937125169510554" />
+      <entry key="MS500" value="5.6122775663398405" />
+      <entry key="S2" value="13.845314094590924" />
+      <entry key="S5" value="18.8798059474648" />
+      <entry key="S10" value="21.214023979744955" />
+      <entry key="S30" value="23.01534716720327" />
+      <entry key="S60" value="23.50027533261145" />
+      <entry key="M2" value="23.7503952204195" />
+      <entry key="M5" value="25.926588489126114" />
+      <entry key="M10" value="49.9990262470999" />
+      <entry key="M15" value="92.09029713434887" />
+      <entry key="M30" value="219.84606544461644" />
+      <entry key="H1" value="370.3756544641022" />
+      <entry key="H2" value="489.77993185976067" />
+      <entry key="H4" value="565.6329718841511" />
+      <entry key="D1" value="639.0635952318756" />
+      <entry key="W1" value="652.6963819212541" />
+    </decayedCancelled>
+    <decayedSelected>
+      <entry key="MS100" value="0.0" />
+      <entry key="MS500" value="0.0" />
+      <entry key="S2" value="0.0" />
+      <entry key="S5" value="0.0" />
+      <entry key="S10" value="0.0" />
+      <entry key="S30" value="0.0" />
+      <entry key="S60" value="0.0" />
+      <entry key="M2" value="0.0" />
+      <entry key="M5" value="0.0" />
+      <entry key="M10" value="0.0" />
+      <entry key="M15" value="0.0" />
+      <entry key="M30" value="0.0" />
+      <entry key="H1" value="0.0" />
+      <entry key="H2" value="0.0" />
+      <entry key="H4" value="0.0" />
+      <entry key="D1" value="0.0" />
+      <entry key="W1" value="0.0" />
+    </decayedSelected>
+    <decayedShown>
+      <entry key="MS100" value="1.8142577067552998" />
+      <entry key="MS500" value="5.559023739876994" />
+      <entry key="S2" value="13.812174725013731" />
+      <entry key="S5" value="18.861772983279785" />
+      <entry key="S10" value="21.20390326397742" />
+      <entry key="S30" value="23.01168986016335" />
+      <entry key="S60" value="23.498408506918004" />
+      <entry key="M2" value="23.749451974576285" />
+      <entry key="M5" value="25.926180093244696" />
+      <entry key="M10" value="49.9986443334899" />
+      <entry key="M15" value="92.08982608670205" />
+      <entry key="M30" value="219.84548676679688" />
+      <entry key="H1" value="370.3751564212226" />
+      <entry key="H2" value="489.7795986867332" />
+      <entry key="H4" value="565.632778347079" />
+      <entry key="D1" value="639.0635586053471" />
+      <entry key="W1" value="652.6963765726782" />
+    </decayedShown>
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 4,
+  "fromUser": false
+}]]></component>
+  <component name="ProjectId" id="3FGc4yBplbel8XSHIl1vpHFW3GF" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "git-widget-placeholder": "main",
+    "js.debugger.nextJs.config.created.client": "true",
+    "js.debugger.nextJs.config.created.server": "true",
+    "last_opened_file_path": "C:/Users/erick.hunsche/Desktop/troca_certa_v2/public",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "npm.Next.js: server-side.executor": "Run",
+    "settings.editor.selected.configurable": "database.data.csv.formats",
+    "ts.external.directory.path": "C:\\Users\\erick.hunsche\\Desktop\\troca_certa_v2\\node_modules\\typescript\\lib",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\erick.hunsche\Desktop\troca_certa_v2\public" />
+    </key>
+  </component>
+  <component name="RunManager" selected="npm.Next.js: server-side">
+    <configuration name="Next.js: debug client-side" type="JavascriptDebugType" uri="http://localhost:3000/">
+      <method v="2" />
+    </configuration>
+    <configuration name="Next.js: server-side" type="js.build_tools.npm">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="dev" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-31caf2ab9e3c-JavaScript-WS-261.25134.101" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="ee2071d0-97c5-4d1b-a21d-87a2a77509c3" name="Changes" comment="" />
+      <created>1781704662608</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1781704662608</updated>
+      <workItem from="1781704664308" duration="6573000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>

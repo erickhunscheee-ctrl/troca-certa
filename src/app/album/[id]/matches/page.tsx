@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
+import { showErrorToast } from "@/lib/toast";
 import { ArrowLeft, RefreshCw, Send, Check, Sparkles, Target, Users } from "lucide-react";
 
 export default function SwapMatches({ params }: { params: Promise<{ id: string }> }) {
@@ -194,7 +195,7 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
 
   const handleSendTradeRequest = async () => {
     if (offeredStickers.length === 0 || requestedStickers.length === 0 || !currentUser || !selectedPartner) {
-      alert("Por favor, selecione pelo menos uma figurinha para enviar e uma para receber.");
+      showErrorToast("Por favor, selecione pelo menos uma figurinha para enviar e uma para receber.");
       return;
     }
 
@@ -212,7 +213,7 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
         .single();
 
       if (requestError || !request) {
-        alert("Erro ao enviar solicitação: " + requestError?.message);
+        showErrorToast("Erro ao enviar solicitacao: " + (requestError?.message || "tente novamente."));
         setSendingRequest(false);
         return;
       }
@@ -238,7 +239,7 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
         .insert(itemsToInsert);
 
       if (itemsError) {
-        alert("Erro ao salvar itens da troca: " + itemsError.message);
+        showErrorToast("Erro ao salvar itens da troca: " + itemsError.message);
       } else {
         setSuccessMsg("Solicitação enviada com sucesso! Redirecionando...");
         setTimeout(() => {
@@ -248,6 +249,7 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
       }
     } catch (err) {
       console.error(err);
+      showErrorToast("Ocorreu um erro ao criar a proposta de troca.");
     } finally {
       setSendingRequest(false);
     }

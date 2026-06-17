@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { showErrorToast } from "@/lib/toast";
 import Navbar from "@/components/Navbar";
 
 export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
@@ -18,10 +20,15 @@ export default function Profile() {
   const [success, setSuccess] = useState<string | null>(null);
   const router = useRouter();
 
+  const showError = (message: string) => {
+    setError(message);
+    showErrorToast(message);
+  };
+
   useEffect(() => {
     async function loadProfile() {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         router.push("/login");
         return;
@@ -36,7 +43,7 @@ export default function Profile() {
         .single();
 
       if (profileError) {
-        setError("Não foi possível carregar as informações do perfil.");
+        showError("Nao foi possivel carregar as informacoes do perfil.");
       } else if (profile) {
         setName(profile.name || "");
         setCity(profile.city || "");
@@ -57,7 +64,13 @@ export default function Profile() {
     setSaving(true);
 
     if (!name || !city || !state) {
-      setError("Nome, Cidade e Estado são obrigatórios.");
+      showError("Nome, cidade e estado sao obrigatorios.");
+      setSaving(false);
+      return;
+    }
+
+    if (!user) {
+      showError("Sessao nao encontrada. Entre novamente para salvar o perfil.");
       setSaving(false);
       return;
     }
@@ -75,12 +88,12 @@ export default function Profile() {
         .eq("id", user.id);
 
       if (updateError) {
-        setError(updateError.message);
+        showError(updateError.message);
       } else {
         setSuccess("Perfil atualizado com sucesso!");
       }
-    } catch (err: any) {
-      setError(err.message || "Ocorreu um erro ao salvar.");
+    } catch (err: unknown) {
+      showError(err instanceof Error ? err.message : "Ocorreu um erro ao salvar.");
     } finally {
       setSaving(false);
     }
@@ -90,8 +103,8 @@ export default function Profile() {
     return (
       <div className="flex min-h-screen flex-col bg-[var(--background)]">
         <Navbar />
-        <main className="flex-1 flex items-center justify-center">
-          <p className="text-zinc-400 text-sm animate-pulse">Carregando perfil...</p>
+        <main className="flex flex-1 items-center justify-center">
+          <p className="animate-pulse text-sm text-zinc-400">Carregando perfil...</p>
         </main>
       </div>
     );
@@ -101,104 +114,102 @@ export default function Profile() {
     <div className="flex min-h-screen flex-col bg-[var(--background)]">
       <Navbar />
 
-      <main className="flex-1 max-w-2xl w-full mx-auto p-4 sm:p-6 lg:p-8 relative">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-[var(--primary)]/5 rounded-full blur-[80px] pointer-events-none" />
-
-        <div className="glass rounded-2xl p-6 sm:p-8 border border-[var(--border-color)] relative z-10">
-          <h2 className="text-2xl font-bold text-white mb-2">Meu Perfil</h2>
-          <p className="text-zinc-400 text-sm mb-6">
-            Mantenha suas informações atualizadas para facilitar as trocas
+      <main className="relative mx-auto w-full max-w-2xl flex-1 p-4 sm:p-6 lg:p-8">
+        <div className="glass relative z-10 rounded-2xl border border-[var(--border-color)] p-6 sm:p-8">
+          <h2 className="mb-2 text-2xl font-bold text-white">Meu Perfil</h2>
+          <p className="mb-6 text-sm text-zinc-400">
+            Mantenha suas informacoes atualizadas para facilitar as trocas
           </p>
 
           {error && (
-            <div className="p-3 mb-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
+            <div className="mb-4 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-center text-sm text-red-500">
               {error}
             </div>
           )}
 
           {success && (
-            <div className="p-3 mb-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm text-center">
+            <div className="mb-4 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-center text-sm text-emerald-600">
               {success}
             </div>
           )}
 
           <form onSubmit={handleSave} className="flex flex-col gap-5">
             <div>
-              <label className="block text-zinc-300 text-xs font-semibold uppercase tracking-wider mb-1.5">
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-300">
                 Nome Completo
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg bg-black/40 border border-[var(--border-color)] text-white text-sm focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all"
+                className="w-full rounded-lg border border-[var(--border-color)] bg-black/40 px-4 py-2.5 text-sm text-white transition-all focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                 required
               />
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-2">
-                <label className="block text-zinc-300 text-xs font-semibold uppercase tracking-wider mb-1.5">
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-300">
                   Cidade
                 </label>
                 <input
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-lg bg-black/40 border border-[var(--border-color)] text-white text-sm focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all"
+                  className="w-full rounded-lg border border-[var(--border-color)] bg-black/40 px-4 py-2.5 text-sm text-white transition-all focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                   required
                 />
               </div>
               <div>
-                <label className="block text-zinc-300 text-xs font-semibold uppercase tracking-wider mb-1.5">
-                  UF / Estado
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-300">
+                  UF
                 </label>
                 <input
                   type="text"
                   value={state}
                   onChange={(e) => setState(e.target.value.toUpperCase())}
                   maxLength={2}
-                  className="w-full px-4 py-2.5 rounded-lg bg-black/40 border border-[var(--border-color)] text-white text-sm text-center focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all"
+                  className="w-full rounded-lg border border-[var(--border-color)] bg-black/40 px-4 py-2.5 text-center text-sm text-white transition-all focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-zinc-300 text-xs font-semibold uppercase tracking-wider mb-1.5">
-                WhatsApp (Opcional - Não aparece publicamente)
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-300">
+                WhatsApp (opcional)
               </label>
               <input
                 type="text"
                 value={whatsapp}
                 onChange={(e) => setWhatsapp(e.target.value)}
                 placeholder="Ex: 11999999999"
-                className="w-full px-4 py-2.5 rounded-lg bg-black/40 border border-[var(--border-color)] text-white text-sm focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all"
+                className="w-full rounded-lg border border-[var(--border-color)] bg-black/40 px-4 py-2.5 text-sm text-white transition-all focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
               />
-              <span className="text-[10px] text-zinc-500 mt-1 block">
-                O WhatsApp será compartilhado somente após você aceitar uma solicitação de troca com outro usuário.
+              <span className="mt-1 block text-[10px] text-zinc-500">
+                O WhatsApp sera compartilhado somente apos voce aceitar uma solicitacao de troca.
               </span>
             </div>
 
             <div>
-              <label className="block text-zinc-300 text-xs font-semibold uppercase tracking-wider mb-1.5">
-                Coleção ou Tema Favorito (Opcional)
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-300">
+                Colecao ou tema favorito (opcional)
               </label>
               <input
                 type="text"
                 value={favoriteTheme}
                 onChange={(e) => setFavoriteTheme(e.target.value)}
                 placeholder="Ex: Futebol, Copa do Mundo, Animes"
-                className="w-full px-4 py-2.5 rounded-lg bg-black/40 border border-[var(--border-color)] text-white text-sm focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all"
+                className="w-full rounded-lg border border-[var(--border-color)] bg-black/40 px-4 py-2.5 text-sm text-white transition-all focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
               />
             </div>
 
             <button
               type="submit"
               disabled={saving}
-              className="w-full mt-4 py-3 rounded-lg text-sm font-semibold bg-gradient-to-r from-[var(--primary)] to-[var(--primary-hover)] hover:from-[var(--primary-hover)] hover:to-[var(--primary)] text-white shadow-md shadow-[var(--primary)]/10 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
+              className="mt-4 w-full cursor-pointer rounded-lg bg-gradient-to-r from-[var(--primary)] to-[var(--primary-hover)] py-3 text-sm font-semibold text-white shadow-md shadow-[var(--primary)]/10 transition-all hover:scale-[1.01] hover:from-[var(--primary-hover)] hover:to-[var(--primary)] active:scale-[0.99] disabled:opacity-50"
             >
-              {saving ? "Salvando..." : "Salvar Alterações"}
+              {saving ? "Salvando..." : "Salvar alteracoes"}
             </button>
           </form>
         </div>
