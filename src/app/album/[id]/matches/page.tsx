@@ -228,10 +228,6 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
                   Voltar ao álbum
                 </Link>
                 <div>
-                  <span className="mb-2 inline-flex items-center gap-2 rounded-full border border-[var(--border-color)] bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-[0.22em] text-[var(--brand-slate)]">
-                    <Sparkles className="h-3.5 w-3.5 text-[var(--primary)]" />
-                    Central de trocas
-                  </span>
                   <h1 className="font-display max-w-2xl text-3xl font-black tracking-tight text-[var(--brand-navy)] sm:text-4xl">Mercado de Trocas</h1>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--brand-slate)] sm:text-base">
                     Explore figurinhas repetidas da comunidade no álbum <strong>{album?.name}</strong> e encontre trocas mais rápidas.
