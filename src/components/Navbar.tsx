@@ -3,10 +3,9 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
-import { Check, ClipboardList, LayoutDashboard, LogOut, RefreshCw, User as UserIcon } from "lucide-react";
+import { BookOpen, ClipboardList, LayoutDashboard, LogOut, User as UserIcon } from "lucide-react";
 import { showErrorToast } from "@/lib/toast";
 import Image from "next/image";
-
 
 type RealtimeChannel = ReturnType<typeof supabase.channel>;
 
@@ -27,28 +26,31 @@ export default function Navbar() {
   useEffect(() => {
     let mounted = true;
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) {
-        return;
-      }
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        if (!mounted) {
+          return;
+        }
 
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      setLoading(false);
-      if (currentUser) {
-        void setupNotifications(currentUser);
-      }
-    }).catch((error) => {
-      console.error("Error loading session", error);
-      showErrorToast("Nao foi possivel carregar sua sessao.");
-      if (mounted) {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
         setLoading(false);
-      }
-    });
+        if (currentUser) {
+          void setupNotifications(currentUser);
+        }
+      })
+      .catch((error) => {
+        console.error("Error loading session", error);
+        showErrorToast("Nao foi possivel carregar sua sessao.");
+        if (mounted) {
+          setLoading(false);
+        }
+      });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
       setLoading(false);
@@ -87,7 +89,6 @@ export default function Navbar() {
         return;
       }
 
-      // 1. Pending Trade Requests Count
       const fetchPendingCount = async () => {
         const { count, error } = await supabase
           .from("trade_requests")
@@ -105,7 +106,6 @@ export default function Navbar() {
         return;
       }
 
-      // Subscribe to trade_requests updates
       tradesChannelRef.current = supabase
         .channel(`user-trades-${currentUser.id}`)
         .on(
@@ -121,9 +121,6 @@ export default function Navbar() {
         )
         .subscribe();
 
-      // 2. Real-time message checking
-      // Subscribe to messages in chats the user belongs to
-      // First, get all chats where user is sender or receiver of the trade_request
       const fetchChatsAndSubscribe = async () => {
         const { data: trades, error } = await supabase
           .from("trade_requests")
@@ -134,10 +131,7 @@ export default function Navbar() {
 
         const tradeIds = trades.map((t) => t.id);
 
-        const { data: chats } = await supabase
-          .from("chats")
-          .select("id")
-          .in("trade_request_id", tradeIds);
+        const { data: chats } = await supabase.from("chats").select("id").in("trade_request_id", tradeIds);
 
         if (!chats || chats.length === 0) return;
 
@@ -158,8 +152,6 @@ export default function Navbar() {
             },
             (payload) => {
               const newMsg = payload.new;
-              // Check if message belongs to one of user's active chats
-              // and was not sent by the user themselves
               if (
                 chatIds.includes(newMsg.chat_id) &&
                 newMsg.sender_id !== currentUser.id &&
@@ -199,56 +191,49 @@ export default function Navbar() {
     return pathname.startsWith(path);
   };
 
-  const showUnreadMessages =
-    unreadMessages && !pathname.includes("/trades") && !pathname.includes("/chat");
+  const showUnreadMessages = unreadMessages && !pathname.includes("/trades") && !pathname.includes("/chat");
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-[var(--border-color)] bg-white/95 shadow-sm backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link
-              href="/"
-              className="font-display flex items-center gap-3 text-xl font-extrabold tracking-normal text-[var(--brand-navy)]"
-            >
-              <Image
-                src="/logo_troca.png"
-                alt="Troca Certa"
-                width={72}
-                height={72}
-                className="h-20 w-auto shrink-0"
-                priority
-              />
+            <Link href="/" className="font-display flex items-center gap-3 text-xl font-extrabold tracking-normal text-[var(--brand-navy)]">
+              <Image src="/logo_troca.png" alt="Troca Certa" width={72} height={72} className="h-20 w-auto shrink-0" priority />
             </Link>
 
             {user && !loading && (
               <div className="hidden items-center gap-1 rounded-full border border-[var(--border-color)] bg-[#f8fafc] p-1 md:flex">
                 <Link
                   href="/dashboard"
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-bold transition-colors ${pathname === "/dashboard"
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-bold transition-colors ${
+                    pathname === "/dashboard"
                       ? "bg-white text-[var(--primary)] shadow-sm"
                       : "text-[var(--brand-slate)] hover:bg-white hover:text-[var(--brand-navy)]"
-                    }`}
+                  }`}
                 >
                   <LayoutDashboard className="h-4 w-4" />
                   Dashboard
                 </Link>
                 <Link
                   href="/albums"
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-bold transition-colors ${isActive("/albums") || isActive("/album")
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-bold transition-colors ${
+                    isActive("/albums") || isActive("/album")
                       ? "bg-white text-[var(--primary)] shadow-sm"
                       : "text-[var(--brand-slate)] hover:bg-white hover:text-[var(--brand-navy)]"
-                    }`}
+                  }`}
                 >
-                  Álbuns
+                  <BookOpen className="h-4 w-4" />
+                  Ãlbuns
                 </Link>
                 <Link
                   href="/trades"
                   onClick={() => setUnreadMessages(false)}
-                  className={`relative flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-bold transition-colors ${isActive("/trades") || isActive("/chat")
+                  className={`relative flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-bold transition-colors ${
+                    isActive("/trades") || isActive("/chat")
                       ? "bg-white text-[var(--primary)] shadow-sm"
                       : "text-[var(--brand-slate)] hover:bg-white hover:text-[var(--brand-navy)]"
-                    }`}
+                  }`}
                 >
                   <ClipboardList className="h-4 w-4" />
                   Trocas
@@ -257,9 +242,7 @@ export default function Navbar() {
                       {pendingTradesCount}
                     </span>
                   )}
-                  {showUnreadMessages && (
-                    <span className="absolute top-1 right-2 flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                  )}
+                  {showUnreadMessages && <span className="absolute top-1 right-2 flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />}
                 </Link>
               </div>
             )}
@@ -272,10 +255,11 @@ export default function Navbar() {
                   <div className="flex items-center gap-3">
                     <Link
                       href="/profile"
-                      className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-bold transition-colors ${isActive("/profile")
+                      className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-bold transition-colors ${
+                        isActive("/profile")
                           ? "bg-[#eef4ff] text-[var(--primary)]"
                           : "text-[var(--brand-slate)] hover:bg-[#eef4ff] hover:text-[var(--brand-navy)]"
-                        }`}
+                      }`}
                     >
                       <UserIcon className="h-4 w-4 text-[var(--primary)]" />
                       <span className="hidden sm:inline">Perfil</span>
@@ -290,10 +274,7 @@ export default function Navbar() {
                   </div>
                 ) : (
                   <div className="flex items-center gap-3">
-                    <Link
-                      href="/login"
-                      className="rounded-full px-4 py-2 text-sm font-bold text-[var(--brand-slate)] transition-colors hover:bg-[#eef4ff] hover:text-[var(--brand-navy)]"
-                    >
+                    <Link href="/login" className="rounded-full px-4 py-2 text-sm font-bold text-[var(--brand-slate)] transition-colors hover:bg-[#eef4ff] hover:text-[var(--brand-navy)]">
                       Entrar
                     </Link>
                     <Link
@@ -309,29 +290,26 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Mobile menu (always simple links just in case) */}
         {user && !loading && (
           <div className="flex items-center justify-around border-t border-[var(--border-color)] py-2 text-xs md:hidden">
             <Link
               href="/dashboard"
-              className={`flex flex-col items-center gap-1 font-bold ${pathname === "/dashboard" ? "text-[var(--primary)]" : "text-[var(--brand-slate)]"
-                }`}
+              className={`flex flex-col items-center gap-1 font-bold ${pathname === "/dashboard" ? "text-[var(--primary)]" : "text-[var(--brand-slate)]"}`}
             >
               <LayoutDashboard className="h-4 w-4" />
               <span>Painel</span>
             </Link>
             <Link
               href="/albums"
-              className={`flex flex-col items-center gap-1 font-bold ${isActive("/albums") || isActive("/album") ? "text-[var(--primary)]" : "text-[var(--brand-slate)]"
-                }`}
+              className={`flex flex-col items-center gap-1 font-bold ${isActive("/albums") || isActive("/album") ? "text-[var(--primary)]" : "text-[var(--brand-slate)]"}`}
             >
-              <span>Álbuns</span>
+              <BookOpen className="h-4 w-4" />
+              <span>Ãlbuns</span>
             </Link>
             <Link
               href="/trades"
               onClick={() => setUnreadMessages(false)}
-              className={`relative flex flex-col items-center gap-1 font-bold ${isActive("/trades") || isActive("/chat") ? "text-[var(--primary)]" : "text-[var(--brand-slate)]"
-                }`}
+              className={`relative flex flex-col items-center gap-1 font-bold ${isActive("/trades") || isActive("/chat") ? "text-[var(--primary)]" : "text-[var(--brand-slate)]"}`}
             >
               <ClipboardList className="h-4 w-4" />
               <span>Trocas</span>
@@ -340,14 +318,11 @@ export default function Navbar() {
                   {pendingTradesCount}
                 </span>
               )}
-              {showUnreadMessages && (
-                <span className="absolute top-0 right-4 flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-              )}
+              {showUnreadMessages && <span className="absolute top-0 right-4 flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />}
             </Link>
             <Link
               href="/profile"
-              className={`flex flex-col items-center gap-1 font-bold ${isActive("/profile") ? "text-[var(--primary)]" : "text-[var(--brand-slate)]"
-                }`}
+              className={`flex flex-col items-center gap-1 font-bold ${isActive("/profile") ? "text-[var(--primary)]" : "text-[var(--brand-slate)]"}`}
             >
               <UserIcon className="h-4 w-4" />
               <span>Perfil</span>
