@@ -13,25 +13,18 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
   const [loading, setLoading] = useState(true);
   const [album, setAlbum] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
-
-  // Market Tabs
   const [activeTab, setActiveTab] = useState<"perfect" | "ineeds" | "all">("perfect");
-
   const [perfectMatches, setPerfectMatches] = useState<any[]>([]);
   const [iNeedMatches, setINeedMatches] = useState<any[]>([]);
   const [allAvailable, setAllAvailable] = useState<any[]>([]);
-
   const [myDuplicatesFull, setMyDuplicatesFull] = useState<any[]>([]);
   const [myMissingIds, setMyMissingIds] = useState<string[]>([]);
-
-  // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState<any>(null);
   const [offeredStickers, setOfferedStickers] = useState<string[]>([]);
   const [requestedStickers, setRequestedStickers] = useState<string[]>([]);
   const [sendingRequest, setSendingRequest] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-
   const router = useRouter();
 
   const loadMatches = async () => {
@@ -41,17 +34,12 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
       router.push("/login");
       return;
     }
+
     setCurrentUser(session.user);
 
-    // Get album details
-    const { data: albumData } = await supabase
-      .from("albums")
-      .select("*")
-      .eq("id", albumId)
-      .single();
+    const { data: albumData } = await supabase.from("albums").select("*").eq("id", albumId).single();
     setAlbum(albumData);
 
-    // Get all stickers in this album
     const { data: allStickers } = await supabase
       .from("stickers")
       .select("*")
@@ -67,16 +55,9 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
     const stickersMap = new Map<string, any>();
     allStickers.forEach((s) => stickersMap.set(s.id, s));
 
-    // Get my stickers
-    const { data: myStickers } = await supabase
-      .from("user_stickers")
-      .select("sticker_id, quantity")
-      .eq("user_id", session.user.id);
-
+    const { data: myStickers } = await supabase.from("user_stickers").select("sticker_id, quantity").eq("user_id", session.user.id);
     const myStickersMap = new Map<string, number>();
-    myStickers?.forEach((ms) => {
-      myStickersMap.set(ms.sticker_id, ms.quantity);
-    });
+    myStickers?.forEach((ms) => myStickersMap.set(ms.sticker_id, ms.quantity));
 
     const currentMissingIds = allStickers.filter((s) => (myStickersMap.get(s.id) ?? 0) === 0).map((s) => s.id);
     const myDuplicateIds = allStickers.filter((s) => (myStickersMap.get(s.id) ?? 0) > 1).map((s) => s.id);
@@ -84,7 +65,6 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
     setMyMissingIds(currentMissingIds);
     setMyDuplicatesFull(myDuplicateIds.map((sid) => stickersMap.get(sid)));
 
-    // Get all other users' stickers
     const { data: otherUserStickers } = await supabase
       .from("user_stickers")
       .select(`
@@ -103,7 +83,6 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
       return;
     }
 
-    // Group other users' stickers by user_id
     const userInventories: { [userId: string]: { profile: any; duplicates: { id: string; price: number | null }[]; missing: string[] } } = {};
 
     otherUserStickers.forEach((item: any) => {
@@ -126,23 +105,21 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
       }
     });
 
-    // Compute matches
     const calculatedPerfect: any[] = [];
     const calculatedINeed: any[] = [];
     const calculatedAll: any[] = [];
 
     Object.keys(userInventories).forEach((uid) => {
       const inventory = userInventories[uid];
-
-      const theirDuplicatesFull = inventory.duplicates.map((dup) => ({
-        ...stickersMap.get(dup.id),
-        price: dup.price
-      })).sort((a, b) => a.number.localeCompare(b.number));
-
+      const theirDuplicatesFull = inventory.duplicates
+        .map((dup) => ({ ...stickersMap.get(dup.id), price: dup.price }))
+        .sort((a, b) => a.number.localeCompare(b.number));
       const theyHaveINeedFull = theirDuplicatesFull.filter((dup) => currentMissingIds.includes(dup.id));
-      const iHaveTheyNeedFull = myDuplicateIds.filter((sid) => inventory.missing.includes(sid)).map((sid) => stickersMap.get(sid)).sort((a, b) => a.number.localeCompare(b.number));
+      const iHaveTheyNeedFull = myDuplicateIds
+        .filter((sid) => inventory.missing.includes(sid))
+        .map((sid) => stickersMap.get(sid))
+        .sort((a, b) => a.number.localeCompare(b.number));
 
-      // Build Partner Object
       const partnerData = {
         profile: inventory.profile,
         theirDuplicates: theirDuplicatesFull,
@@ -151,17 +128,9 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
         inventoryMissing: inventory.missing,
       };
 
-      if (theirDuplicatesFull.length > 0) {
-        calculatedAll.push(partnerData);
-      }
-
-      if (theyHaveINeedFull.length > 0) {
-        calculatedINeed.push(partnerData);
-      }
-
-      if (theyHaveINeedFull.length > 0 && iHaveTheyNeedFull.length > 0) {
-        calculatedPerfect.push(partnerData);
-      }
+      if (theirDuplicatesFull.length > 0) calculatedAll.push(partnerData);
+      if (theyHaveINeedFull.length > 0) calculatedINeed.push(partnerData);
+      if (theyHaveINeedFull.length > 0 && iHaveTheyNeedFull.length > 0) calculatedPerfect.push(partnerData);
     });
 
     setPerfectMatches(calculatedPerfect);
@@ -178,19 +147,16 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
     setSelectedPartner(partner);
     setOfferedStickers([]);
     setRequestedStickers([]);
+    setSuccessMsg(null);
     setIsModalOpen(true);
   };
 
   const toggleOfferSticker = (id: string) => {
-    setOfferedStickers((prev) =>
-      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
-    );
+    setOfferedStickers((prev) => (prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]));
   };
 
   const toggleRequestSticker = (id: string) => {
-    setRequestedStickers((prev) =>
-      prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]
-    );
+    setRequestedStickers((prev) => (prev.includes(id) ? prev.filter((sid) => sid !== id) : [...prev, id]));
   };
 
   const handleSendTradeRequest = async () => {
@@ -220,23 +186,13 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
 
       const itemsToInsert: any[] = [];
       offeredStickers.forEach((stickerId) => {
-        itemsToInsert.push({
-          trade_request_id: request.id,
-          sticker_id: stickerId,
-          sender_id: currentUser.id,
-        });
+        itemsToInsert.push({ trade_request_id: request.id, sticker_id: stickerId, sender_id: currentUser.id });
       });
       requestedStickers.forEach((stickerId) => {
-        itemsToInsert.push({
-          trade_request_id: request.id,
-          sticker_id: stickerId,
-          sender_id: selectedPartner.profile.id,
-        });
+        itemsToInsert.push({ trade_request_id: request.id, sticker_id: stickerId, sender_id: selectedPartner.profile.id });
       });
 
-      const { error: itemsError } = await supabase
-        .from("trade_items")
-        .insert(itemsToInsert);
+      const { error: itemsError } = await supabase.from("trade_items").insert(itemsToInsert);
 
       if (itemsError) {
         showErrorToast("Erro ao salvar itens da troca: " + itemsError.message);
@@ -245,7 +201,7 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
         setTimeout(() => {
           setIsModalOpen(false);
           router.push("/trades");
-        }, 2000);
+        }, 1800);
       }
     } catch (err) {
       console.error(err);
@@ -255,334 +211,352 @@ export default function SwapMatches({ params }: { params: Promise<{ id: string }
     }
   };
 
-  const getCurrentList = () => {
-    if (activeTab === "perfect") return perfectMatches;
-    if (activeTab === "ineeds") return iNeedMatches;
-    return allAvailable;
-  };
-
-  const currentList = getCurrentList();
+  const currentList = activeTab === "perfect" ? perfectMatches : activeTab === "ineeds" ? iNeedMatches : allAvailable;
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--background)]">
       <Navbar />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-        {/* Header */}
-        <div className="flex flex-col gap-2 mb-6">
-          <Link
-            href={`/album/${albumId}`}
-            className="flex items-center gap-1.5 text-xs font-semibold text-zinc-400 hover:text-white transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Voltar ao Álbum
-          </Link>
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-white">Mercado de Trocas</h1>
-              <p className="text-zinc-400 text-sm mt-1">
-                Explore todas as figurinhas repetidas da comunidade no álbum **{album?.name}**.
-              </p>
-            </div>
-            <button
-              onClick={loadMatches}
-              className="p-2.5 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 text-zinc-300 transition-colors cursor-pointer"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Market Tabs */}
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-8 bg-zinc-900/50 p-2 rounded-2xl border border-white/5">
-          <button
-            onClick={() => setActiveTab("perfect")}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold transition-all ${
-              activeTab === "perfect"
-                ? "bg-[var(--primary)] text-white shadow-md shadow-[var(--primary)]/20"
-                : "text-zinc-400 hover:bg-white/5 hover:text-white"
-            }`}
-          >
-            <Sparkles className="h-4 w-4" />
-            Matches Perfeitos ({perfectMatches.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("ineeds")}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold transition-all ${
-              activeTab === "ineeds"
-                ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/20"
-                : "text-zinc-400 hover:bg-white/5 hover:text-white"
-            }`}
-          >
-            <Target className="h-4 w-4" />
-            O que eu preciso ({iNeedMatches.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("all")}
-            className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-bold transition-all ${
-              activeTab === "all"
-                ? "bg-amber-600 text-white shadow-md shadow-amber-500/20"
-                : "text-zinc-400 hover:bg-white/5 hover:text-white"
-            }`}
-          >
-            <Users className="h-4 w-4" />
-            Todas Disponíveis ({allAvailable.length})
-          </button>
-        </div>
-
-        {loading ? (
-          <div className="text-center py-12">
-            <p className="text-zinc-400 text-sm animate-pulse">Atualizando o mercado...</p>
-          </div>
-        ) : currentList.length === 0 ? (
-          <div className="glass p-12 rounded-2xl border border-[var(--border-color)] text-center max-w-md mx-auto">
-            <h3 className="font-bold text-white text-lg">Nenhum resultado</h3>
-            <p className="text-zinc-400 text-sm mt-1">
-              Não encontramos nenhum usuário compatível nesta categoria agora. Tente novamente mais tarde.
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-6">
-            {currentList.map((match, idx) => (
-              <div key={idx} className="glass p-6 rounded-2xl border border-[var(--border-color)] flex flex-col lg:flex-row justify-between items-stretch gap-6">
-                {/* Partner Details */}
-                <div className="lg:w-1/4 flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-white">{match.profile.name}</h3>
-                    <p className="text-xs text-zinc-400 mt-0.5">{match.profile.city} - {match.profile.state}</p>
-                    
-                    <div className="mt-4 flex flex-col gap-1.5 text-xs">
-                      <span className="text-amber-400 bg-amber-400/10 px-2 py-1 rounded inline-block w-max font-semibold">
-                        Ele tem {match.theirDuplicates.length} repetidas
-                      </span>
-                      <span className="text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded inline-block w-max font-semibold">
-                        Ele tem {match.theyHaveINeed.length} que você precisa
-                      </span>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => openTradeModal(match)}
-                    className="mt-6 w-full py-3 px-4 rounded-xl text-xs font-bold text-center bg-gradient-to-r from-[var(--primary)] to-[var(--primary-hover)] hover:from-[var(--primary-hover)] hover:to-[var(--primary)] text-white shadow-md shadow-[var(--primary)]/15 transition-all hover:scale-[1.02] cursor-pointer"
-                  >
-                    Solicitar Troca
-                  </button>
-                </div>
-
-                {/* Stickers matching context based on Active Tab */}
-                <div className="flex-1 border-t lg:border-t-0 lg:border-l border-white/5 pt-4 lg:pt-0 lg:pl-6">
-                  {activeTab === "perfect" && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
-                      <div>
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-3">Ele tem que eu preciso:</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {match.theyHaveINeed.map((s: any) => (
-                            <span key={s.id} className="text-[11px] font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-2 py-1 rounded flex items-center gap-1.5">
-                              <span>{s.number} - {s.name}</span>
-                              {s.price !== null && s.price !== undefined && (
-                                <span className="bg-emerald-500 text-black text-[9px] px-1 rounded font-extrabold">R$ {parseFloat(s.price).toFixed(2)}</span>
-                              )}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400 mb-3">Eu tenho que ele precisa:</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {match.iHaveTheyNeed.map((s: any) => (
-                            <span key={s.id} className="text-[11px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20 px-2 py-1 rounded">
-                              {s.number} - {s.name}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === "ineeds" && (
-                    <div>
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-3">Ele tem as figurinhas que você procura:</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {match.theyHaveINeed.map((s: any) => (
-                          <span key={s.id} className="text-[11px] font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-2 py-1 rounded flex items-center gap-1.5">
-                            <span>{s.number} - {s.name}</span>
-                            {s.price !== null && s.price !== undefined && (
-                              <span className="bg-emerald-500 text-black text-[9px] px-1 rounded font-extrabold">R$ {parseFloat(s.price).toFixed(2)}</span>
-                            )}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === "all" && (
-                    <div>
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-300 mb-3">Todas as repetidas de {match.profile.name}:</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {match.theirDuplicates.map((s: any) => {
-                          const iNeedThis = myMissingIds.includes(s.id);
-                          return (
-                            <span key={s.id} className={`text-[11px] font-bold border px-2 py-1 rounded flex items-center gap-1.5 ${
-                              iNeedThis ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/20" : "bg-zinc-800/50 text-zinc-400 border-zinc-700/50"
-                            }`}>
-                              <span>{s.number} - {s.name}</span>
-                              {s.price !== null && s.price !== undefined && (
-                                <span className="bg-emerald-500 text-black text-[9px] px-1 rounded font-extrabold">R$ {parseFloat(s.price).toFixed(2)}</span>
-                              )}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Trade Request Creator Modal - NOVO FORMATO LIVRE */}
-        {isModalOpen && selectedPartner && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-            <div className="glass w-full max-w-4xl rounded-2xl border border-[var(--border-color)] p-6 overflow-hidden flex flex-col max-h-[90vh]">
-              <div className="flex justify-between items-start mb-4">
+      <main className="mx-auto flex w-full max-w-7xl flex-1 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+        <div className="flex w-full flex-col gap-6">
+          <section className="glass relative overflow-hidden rounded-[28px] border border-[var(--border-color)] p-5 shadow-[0_20px_60px_rgba(10,27,61,0.08)] sm:p-7">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(17,77,255,0.12),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.08),transparent_30%)]" />
+            <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div className="space-y-3">
+                <Link href={`/album/${albumId}`} className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--brand-slate)] transition-colors hover:text-[var(--brand-navy)]">
+                  <ArrowLeft className="h-4 w-4" />
+                  Voltar ao álbum
+                </Link>
                 <div>
-                  <h3 className="text-xl font-bold text-white">Criar Proposta de Troca</h3>
-                  <p className="text-xs text-zinc-400">
-                    Você pode oferecer qualquer uma de suas repetidas e pedir qualquer repetida de **{selectedPartner.profile.name}**.
+                  <span className="mb-2 inline-flex items-center gap-2 rounded-full border border-[var(--border-color)] bg-white/80 px-3 py-1 text-xs font-bold uppercase tracking-[0.22em] text-[var(--brand-slate)]">
+                    <Sparkles className="h-3.5 w-3.5 text-[var(--primary)]" />
+                    Central de trocas
+                  </span>
+                  <h1 className="font-display max-w-2xl text-3xl font-black tracking-tight text-[var(--brand-navy)] sm:text-4xl">Mercado de Trocas</h1>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--brand-slate)] sm:text-base">
+                    Explore figurinhas repetidas da comunidade no álbum <strong>{album?.name}</strong> e encontre trocas mais rápidas.
                   </p>
                 </div>
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="text-zinc-500 hover:text-white font-bold cursor-pointer"
-                >
-                  Fechar
-                </button>
               </div>
+              <button
+                onClick={loadMatches}
+                className="inline-flex items-center justify-center rounded-2xl border border-[var(--border-color)] bg-white/85 p-3 text-[var(--brand-slate)] transition-all hover:-translate-y-0.5 hover:border-[var(--primary)] hover:text-[var(--primary)]"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
+            </div>
+          </section>
 
-              {successMsg ? (
-                <div className="my-auto py-12 flex flex-col items-center justify-center text-center">
-                  <span className="h-12 w-12 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 mb-4 animate-bounce">
-                    <Check className="h-6 w-6" />
-                  </span>
-                  <p className="text-emerald-400 font-semibold">{successMsg}</p>
-                </div>
-              ) : (
-                <>
-                  <div className="flex-1 overflow-y-auto pr-2 flex flex-col md:flex-row gap-6 py-2">
-                    {/* Coluna Esquerda: O QUE VOU ENVIAR (Minhas Repetidas) */}
-                    <div className="flex-1 border border-amber-500/20 bg-amber-500/5 rounded-xl p-4 flex flex-col">
-                      <h4 className="text-sm font-bold uppercase tracking-wider text-amber-400 mb-4 flex items-center gap-2">
-                        <span className="bg-amber-500 text-black px-2 py-0.5 rounded-md text-xs">Vou Enviar</span>
-                        Minhas Repetidas
-                      </h4>
-                      {myDuplicatesFull.length === 0 ? (
-                         <p className="text-xs text-zinc-500 italic">Você não tem figurinhas repetidas para oferecer.</p>
-                      ) : (
-                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-2 overflow-y-auto pr-1 pb-4">
-                          {myDuplicatesFull.map((s: any) => {
-                            const active = offeredStickers.includes(s.id);
-                            const partnerNeeds = selectedPartner.inventoryMissing.includes(s.id);
-                            return (
-                              <button
-                                key={s.id}
-                                onClick={() => toggleOfferSticker(s.id)}
-                                className={`p-2.5 rounded-lg border text-left text-xs transition-all flex flex-col gap-1 cursor-pointer ${
-                                  active
-                                    ? "bg-amber-500/20 border-amber-500 text-amber-300 font-bold"
-                                    : "bg-black/40 border-white/5 text-zinc-400 hover:border-white/20"
-                                }`}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span>{s.number} - {s.name}</span>
-                                  {active && <Check className="h-4 w-4 text-amber-400 shrink-0" />}
-                                </div>
-                                {partnerNeeds && !active && (
-                                  <span className="text-[9px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded w-max">
-                                    Ele precisa
-                                  </span>
-                                )}
-                              </button>
-                            );
-                          })}
+          <div className="grid gap-3 rounded-[24px] border border-[var(--border-color)] bg-white/85 p-2 shadow-[0_16px_40px_rgba(10,27,61,0.06)] sm:grid-cols-3">
+            <button
+              onClick={() => setActiveTab("perfect")}
+              className={`flex items-center justify-center gap-2 rounded-2xl px-4 py-4 text-sm font-bold transition-all ${
+                activeTab === "perfect"
+                  ? "bg-[var(--brand-navy)] text-white shadow-lg shadow-[rgba(10,27,61,0.18)]"
+                  : "text-[var(--brand-slate)] hover:bg-[var(--background)] hover:text-[var(--brand-navy)]"
+              }`}
+            >
+              <Sparkles className="h-4 w-4" />
+              Matches Perfeitos ({perfectMatches.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("ineeds")}
+              className={`flex items-center justify-center gap-2 rounded-2xl px-4 py-4 text-sm font-bold transition-all ${
+                activeTab === "ineeds"
+                  ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
+                  : "text-[var(--brand-slate)] hover:bg-[var(--background)] hover:text-[var(--brand-navy)]"
+              }`}
+            >
+              <Target className="h-4 w-4" />
+              O que eu preciso ({iNeedMatches.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("all")}
+              className={`flex items-center justify-center gap-2 rounded-2xl px-4 py-4 text-sm font-bold transition-all ${
+                activeTab === "all"
+                  ? "bg-amber-500 text-white shadow-lg shadow-amber-500/20"
+                  : "text-[var(--brand-slate)] hover:bg-[var(--background)] hover:text-[var(--brand-navy)]"
+              }`}
+            >
+              <Users className="h-4 w-4" />
+              Todas Disponíveis ({allAvailable.length})
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="glass rounded-[24px] border border-[var(--border-color)] py-16 text-center">
+              <p className="animate-pulse text-sm text-[var(--brand-slate)]">Atualizando o mercado...</p>
+            </div>
+          ) : currentList.length === 0 ? (
+            <div className="glass mx-auto max-w-md rounded-[24px] border border-[var(--border-color)] p-10 text-center">
+              <h3 className="text-lg font-bold text-[var(--brand-navy)]">Nenhum resultado</h3>
+              <p className="mt-2 text-sm text-[var(--brand-slate)]">Não encontramos nenhum usuário compatível nesta categoria agora. Tente novamente mais tarde.</p>
+            </div>
+          ) : (
+            <div className="grid gap-5">
+              {currentList.map((match, idx) => (
+                <article key={idx} className="glass overflow-hidden rounded-[28px] border border-[var(--border-color)] shadow-[0_14px_40px_rgba(10,27,61,0.06)]">
+                  <div className="grid gap-0 lg:grid-cols-[320px_1fr]">
+                    <div className="flex flex-col justify-between gap-5 border-b border-[var(--border-color)] bg-gradient-to-br from-white to-[rgba(17,77,255,0.04)] p-6 lg:border-b-0 lg:border-r">
+                      <div>
+                        <div className="mb-4 flex items-center gap-3">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-navy)] text-sm font-black text-white shadow-lg shadow-[rgba(10,27,61,0.14)]">
+                            {match.profile.name?.charAt(0)?.toUpperCase()}
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-black text-[var(--brand-navy)]">{match.profile.name}</h3>
+                            <p className="text-sm text-[var(--brand-slate)]">
+                              {match.profile.city} - {match.profile.state}
+                            </p>
+                          </div>
                         </div>
-                      )}
+                        <div className="flex flex-wrap gap-2">
+                          <span className="inline-flex items-center rounded-full bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-700 ring-1 ring-inset ring-amber-500/20">
+                            {match.theirDuplicates.length} repetidas
+                          </span>
+                          <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-700 ring-1 ring-inset ring-emerald-500/20">
+                            {match.theyHaveINeed.length} que você precisa
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => openTradeModal(match)}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[var(--primary)] to-[var(--primary-hover)] px-4 py-3 text-sm font-bold text-white shadow-lg shadow-[rgba(17,77,255,0.18)] transition-all hover:-translate-y-0.5 hover:from-[var(--primary-hover)] hover:to-[var(--primary)]"
+                      >
+                        <Send className="h-4 w-4" />
+                        Solicitar troca
+                      </button>
                     </div>
 
-                    {/* Coluna Direita: O QUE VOU RECEBER (Repetidas Dele) */}
-                    <div className="flex-1 border border-emerald-500/20 bg-emerald-500/5 rounded-xl p-4 flex flex-col">
-                      <h4 className="text-sm font-bold uppercase tracking-wider text-emerald-400 mb-4 flex items-center gap-2">
-                        <span className="bg-emerald-500 text-black px-2 py-0.5 rounded-md text-xs">Vou Receber</span>
-                        Repetidas de {selectedPartner.profile.name}
-                      </h4>
-                      {selectedPartner.theirDuplicates.length === 0 ? (
-                         <p className="text-xs text-zinc-500 italic">Ele não tem figurinhas repetidas.</p>
-                      ) : (
-                        <div className="grid grid-cols-1 xl:grid-cols-2 gap-2 overflow-y-auto pr-1 pb-4">
-                          {selectedPartner.theirDuplicates.map((s: any) => {
-                            const active = requestedStickers.includes(s.id);
-                            const iNeed = myMissingIds.includes(s.id);
-                            return (
-                              <button
-                                key={s.id}
-                                onClick={() => toggleRequestSticker(s.id)}
-                                className={`p-2.5 rounded-lg border text-left text-xs transition-all flex flex-col gap-1 cursor-pointer ${
-                                  active
-                                    ? "bg-emerald-500/20 border-emerald-500 text-emerald-300 font-bold"
-                                    : "bg-black/40 border-white/5 text-zinc-400 hover:border-white/20"
-                                }`}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span>{s.number} - {s.name}</span>
-                                  {active && <Check className="h-4 w-4 text-emerald-400 shrink-0" />}
-                                </div>
-                                <div className="flex gap-1.5 items-center mt-1">
-                                  {iNeed && !active && (
-                                    <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded w-max">
-                                      Você precisa
-                                    </span>
-                                  )}
+                    <div className="p-6">
+                      {activeTab === "perfect" && (
+                        <div className="grid gap-4 xl:grid-cols-2">
+                          <div className="rounded-2xl border border-emerald-500/15 bg-emerald-500/5 p-4">
+                            <h4 className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-emerald-700">Ele tem que eu preciso</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {match.theyHaveINeed.map((s: any) => (
+                                <span key={s.id} className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-white px-3 py-1.5 text-[11px] font-bold text-emerald-700 shadow-sm">
+                                  <span>
+                                    {s.number} - {s.name}
+                                  </span>
                                   {s.price !== null && s.price !== undefined && (
-                                    <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded w-max font-bold">
+                                    <span className="rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-black text-white">
                                       R$ {parseFloat(s.price).toFixed(2)}
                                     </span>
                                   )}
-                                </div>
-                              </button>
-                            );
-                          })}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-4">
+                            <h4 className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-amber-700">Eu tenho que ele precisa</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {match.iHaveTheyNeed.map((s: any) => (
+                                <span key={s.id} className="inline-flex items-center rounded-full border border-amber-500/20 bg-white px-3 py-1.5 text-[11px] font-bold text-amber-700 shadow-sm">
+                                  {s.number} - {s.name}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {activeTab === "ineeds" && (
+                        <div className="rounded-2xl border border-emerald-500/15 bg-emerald-500/5 p-4">
+                          <h4 className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-emerald-700">Ele tem as figurinhas que você procura</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {match.theyHaveINeed.map((s: any) => (
+                              <span key={s.id} className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-white px-3 py-1.5 text-[11px] font-bold text-emerald-700 shadow-sm">
+                                <span>
+                                  {s.number} - {s.name}
+                                </span>
+                                {s.price !== null && s.price !== undefined && (
+                                  <span className="rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-black text-white">
+                                    R$ {parseFloat(s.price).toFixed(2)}
+                                  </span>
+                                )}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {activeTab === "all" && (
+                        <div className="rounded-2xl border border-[var(--border-color)] bg-white/70 p-4">
+                          <h4 className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-[var(--brand-slate)]">
+                            Todas as repetidas de {match.profile.name}
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {match.theirDuplicates.map((s: any) => {
+                              const iNeedThis = myMissingIds.includes(s.id);
+                              return (
+                                <span
+                                  key={s.id}
+                                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-bold shadow-sm ${
+                                    iNeedThis
+                                      ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700"
+                                      : "border-[var(--border-color)] bg-white text-[var(--brand-slate)]"
+                                  }`}
+                                >
+                                  <span>
+                                    {s.number} - {s.name}
+                                  </span>
+                                  {s.price !== null && s.price !== undefined && (
+                                    <span className="rounded-full bg-[var(--brand-navy)] px-1.5 py-0.5 text-[9px] font-black text-white">
+                                      R$ {parseFloat(s.price).toFixed(2)}
+                                    </span>
+                                  )}
+                                </span>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
                     </div>
                   </div>
-
-                  <div className="border-t border-white/5 pt-4 mt-4 flex justify-between items-center">
-                    <div className="text-xs text-zinc-400">
-                      Enviando: <strong className="text-amber-400">{offeredStickers.length}</strong> | 
-                      Recebendo: <strong className="text-emerald-400">{requestedStickers.length}</strong>
-                    </div>
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => setIsModalOpen(false)}
-                        className="px-4 py-2.5 rounded-xl text-xs font-bold text-zinc-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 transition-colors cursor-pointer"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        onClick={handleSendTradeRequest}
-                        disabled={sendingRequest || offeredStickers.length === 0 || requestedStickers.length === 0}
-                        className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[var(--primary)] to-[var(--primary-hover)] hover:from-[var(--primary-hover)] hover:to-[var(--primary)] transition-all shadow-md shadow-[var(--primary)]/10 flex items-center gap-1.5 disabled:opacity-40 cursor-pointer"
-                      >
-                        <Send className="h-3.5 w-3.5" />
-                        {sendingRequest ? "Enviando..." : "Enviar Solicitação"}
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
+                </article>
+              ))}
             </div>
-          </div>
-        )}
+          )}
+
+          {isModalOpen && selectedPartner && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
+              <div className="glass flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-[28px] border border-[var(--border-color)] p-6 shadow-[0_30px_80px_rgba(10,27,61,0.22)]">
+                <div className="mb-4 flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-xl font-bold text-[var(--brand-navy)]">Criar Proposta de Troca</h3>
+                    <p className="text-xs text-[var(--brand-slate)]">
+                      Você pode oferecer qualquer uma de suas repetidas e pedir qualquer repetida de {selectedPartner.profile.name}.
+                    </p>
+                  </div>
+                  <button onClick={() => setIsModalOpen(false)} className="cursor-pointer text-sm font-bold text-[var(--brand-slate)] hover:text-[var(--brand-navy)]">
+                    Fechar
+                  </button>
+                </div>
+
+                {successMsg ? (
+                  <div className="my-auto flex flex-col items-center justify-center py-12 text-center">
+                    <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-500">
+                      <Check className="h-6 w-6" />
+                    </span>
+                    <p className="font-semibold text-emerald-700">{successMsg}</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex-1 overflow-y-auto py-2 pr-2">
+                      <div className="grid gap-5 md:grid-cols-2">
+                        <div className="flex flex-col rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
+                          <h4 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-[0.2em] text-amber-700">
+                            <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[10px] text-white">Vou enviar</span>
+                            Minhas repetidas
+                          </h4>
+                          {myDuplicatesFull.length === 0 ? (
+                            <p className="text-xs italic text-[var(--brand-slate)]">Você não tem figurinhas repetidas para oferecer.</p>
+                          ) : (
+                            <div className="grid grid-cols-1 gap-2 overflow-y-auto pr-1">
+                              {myDuplicatesFull.map((s: any) => {
+                                const active = offeredStickers.includes(s.id);
+                                const partnerNeeds = selectedPartner.inventoryMissing.includes(s.id);
+                                return (
+                                  <button
+                                    key={s.id}
+                                    onClick={() => toggleOfferSticker(s.id)}
+                                    className={`flex cursor-pointer flex-col gap-1 rounded-xl border p-3 text-left text-xs transition-all ${
+                                      active
+                                        ? "border-amber-500 bg-amber-500/15 text-amber-800"
+                                        : "border-[var(--border-color)] bg-white/70 text-[var(--brand-slate)] hover:border-amber-300"
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between gap-3">
+                                      <span className="font-semibold">
+                                        {s.number} - {s.name}
+                                      </span>
+                                      {active && <Check className="h-4 w-4 shrink-0 text-amber-600" />}
+                                    </div>
+                                    {partnerNeeds && !active && (
+                                      <span className="w-max rounded-full bg-amber-500/15 px-2 py-0.5 text-[9px] font-bold text-amber-700">
+                                        Ele precisa
+                                      </span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                          <h4 className="mb-4 flex items-center gap-2 text-sm font-black uppercase tracking-[0.2em] text-emerald-700">
+                            <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] text-white">Vou receber</span>
+                            Repetidas de {selectedPartner.profile.name}
+                          </h4>
+                          {selectedPartner.theirDuplicates.length === 0 ? (
+                            <p className="text-xs italic text-[var(--brand-slate)]">Ele não tem figurinhas repetidas.</p>
+                          ) : (
+                            <div className="grid grid-cols-1 gap-2 overflow-y-auto pr-1">
+                              {selectedPartner.theirDuplicates.map((s: any) => {
+                                const active = requestedStickers.includes(s.id);
+                                const iNeed = myMissingIds.includes(s.id);
+                                return (
+                                  <button
+                                    key={s.id}
+                                    onClick={() => toggleRequestSticker(s.id)}
+                                    className={`flex cursor-pointer flex-col gap-1 rounded-xl border p-3 text-left text-xs transition-all ${
+                                      active
+                                        ? "border-emerald-500 bg-emerald-500/15 text-emerald-800"
+                                        : "border-[var(--border-color)] bg-white/70 text-[var(--brand-slate)] hover:border-emerald-300"
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between gap-3">
+                                      <span className="font-semibold">
+                                        {s.number} - {s.name}
+                                      </span>
+                                      {active && <Check className="h-4 w-4 shrink-0 text-emerald-600" />}
+                                    </div>
+                                    <div className="mt-1 flex flex-wrap gap-1.5">
+                                      {iNeed && !active && <span className="w-max rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-bold text-emerald-700">Você precisa</span>}
+                                      {s.price !== null && s.price !== undefined && (
+                                        <span className="w-max rounded-full bg-amber-500/15 px-2 py-0.5 text-[9px] font-bold text-amber-700">
+                                          R$ {parseFloat(s.price).toFixed(2)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--border-color)] pt-4">
+                      <div className="text-xs text-[var(--brand-slate)]">
+                        Enviando: <strong className="text-amber-700">{offeredStickers.length}</strong> | Recebendo: <strong className="text-emerald-700">{requestedStickers.length}</strong>
+                      </div>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => setIsModalOpen(false)}
+                          className="rounded-xl border border-[var(--border-color)] bg-white px-4 py-2.5 text-xs font-bold text-[var(--brand-slate)] transition-colors hover:text-[var(--brand-navy)]"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={handleSendTradeRequest}
+                          disabled={sendingRequest || offeredStickers.length === 0 || requestedStickers.length === 0}
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[var(--primary)] to-[var(--primary-hover)] px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-[rgba(17,77,255,0.14)] transition-all disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          <Send className="h-3.5 w-3.5" />
+                          {sendingRequest ? "Enviando..." : "Enviar Solicitação"}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
