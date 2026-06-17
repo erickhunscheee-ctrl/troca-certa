@@ -8,6 +8,7 @@ import { showErrorToast } from "@/lib/toast";
 import Navbar from "@/components/Navbar";
 
 export default function Register() {
+  const cityOptions = ["Roca Sales", "Encantado", "Muçum", "Dois Lajeados", "Guaporé"];
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -117,14 +118,21 @@ export default function Register() {
                 <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-zinc-300">
                   Cidade
                 </label>
-                <input
-                  type="text"
+                <select
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  placeholder="Ex: Sao Paulo"
                   className="w-full rounded-lg border border-[var(--border-color)] bg-black/40 px-4 py-2.5 text-sm text-white transition-all focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                   required
-                />
+                >
+                  <option value="" disabled>
+                    Selecione uma cidade
+                  </option>
+                  {cityOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-zinc-300">
