@@ -181,9 +181,6 @@ export default function Albums() {
               className="h-10 w-10 rounded-lg object-cover"
             />
             <span className="flex flex-col">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                Divulgação
-              </span>
               <span className="text-sm font-bold text-white">group.pixels</span>
             </span>
           </a>
